@@ -5,7 +5,7 @@ public class Doctor: EntityBase
     public string Name { get; init; }
     public string LicenseNumber { get; init; }
     public bool IsActive { get; private set; }
-    public Guid? SpecialityId { get; set; }
+    public Guid SpecialityId { get; set; }
     public Speciality? Speciality { get; private set; }
     public bool Deleted { get; private set; }
 
