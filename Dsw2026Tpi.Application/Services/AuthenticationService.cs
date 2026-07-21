@@ -53,10 +53,24 @@ public class AuthenticationService : IAuthenticationService
         );
     }
 
-    public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Response request)
-    {
-        throw new NotImplementedException();
-    }
+   public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
+{
+    if (!request.Email.IsEmailValid())
+        throw new ValidationException().WithDetail("email", "formato inválido");
+
+    if (!request.Dni.IsDniValid())
+        throw new ValidationException().WithDetail("dni", "debe tener 7 u 8 dígitos");
+
+    var user = await _userManager.FindByEmailAsync(request.Email);
+
+    if (user is null || user.Dni != request.Dni)
+        throw new AuthenticationException();
+
+    var role = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
+    var token = _jwtService.GenerateToken(user.UserName!, role);
+
+    return new LoginPatientModel.Response(token, role);
+}
 
     public async Task<RegisterModel.Response> Register(RegisterModel.Request request)
     {
