@@ -7,6 +7,7 @@ public class Doctor: EntityBase
     public bool IsActive { get; private set; }
     public Guid? SpecialityId { get; set; }
     public Speciality? Speciality { get; private set; }
+    public bool Deleted { get; private set; }
 
     #region Constructor for EF
 #pragma warning disable CS8618
@@ -22,10 +23,16 @@ public class Doctor: EntityBase
         LicenseNumber = licenseNumber;
         Speciality = speciality;
         IsActive = true;
+        Deleted = false;
     }
 
     public void Deactivate()
     {
         IsActive = false;
+    }
+
+    public void Eliminar()
+    {
+        this.Deleted = true;
     }
 }
