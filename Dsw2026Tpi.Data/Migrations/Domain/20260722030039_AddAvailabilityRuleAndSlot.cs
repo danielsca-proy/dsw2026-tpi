@@ -11,42 +11,7 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "Specialities",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Specialities", x => x.Id);
-                });
 
-            migrationBuilder.CreateTable(
-                name: "Doctors",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LicenseNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    SpecialityId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Doctors", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Doctors_Specialities_SpecialityId",
-                        column: x => x.SpecialityId,
-                        principalTable: "Specialities",
-                        principalColumn: "Id");
-                });
 
             migrationBuilder.CreateTable(
                 name: "AvailabilityRules",
@@ -124,10 +89,6 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
                 table: "AvailabilitySlots",
                 column: "RuleId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Doctors_SpecialityId",
-                table: "Doctors",
-                column: "SpecialityId");
         }
 
         /// <inheritdoc />
@@ -135,15 +96,10 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
         {
             migrationBuilder.DropTable(
                 name: "AvailabilitySlots");
-
             migrationBuilder.DropTable(
                 name: "AvailabilityRules");
 
-            migrationBuilder.DropTable(
-                name: "Doctors");
 
-            migrationBuilder.DropTable(
-                name: "Specialities");
         }
     }
 }
