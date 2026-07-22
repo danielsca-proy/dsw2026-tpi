@@ -31,8 +31,6 @@ public class AvailabilityRule : EntityBase
     // Para simplicidad almacenamos CSV de fechas ISO (yyyy-MM-dd)
     public string? ExcludedDatesCsv { get; set; }
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? UpdatedAt { get; set; }
 
     [NotMapped]
     public IEnumerable<DayOfWeek> DaysOfWeek => string.IsNullOrWhiteSpace(DaysOfWeekCsv)

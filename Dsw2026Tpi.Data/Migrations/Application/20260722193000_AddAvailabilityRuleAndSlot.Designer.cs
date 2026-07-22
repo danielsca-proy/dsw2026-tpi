@@ -4,16 +4,19 @@ using Dsw2026Tpi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Dsw2026Tpi.Data.Migrations.Domain
+namespace Dsw2026Tpi.Data.Migrations.Application
 {
     [DbContext(typeof(Dsw2026TpiDbContext))]
-    partial class Dsw2026TpiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722193000_AddAvailabilityRuleAndSlot")]
+    partial class AddAvailabilityRuleAndSlot
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -66,7 +69,7 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
                     b.Property<long>("StartTime")
                         .HasColumnType("bigint");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -106,7 +109,7 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -127,18 +130,23 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<string>("LicenseNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
-                    b.Property<Guid?>("SpecialityId")
+                    b.Property<Guid>("SpecialityId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -160,13 +168,18 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -208,7 +221,9 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
                 {
                     b.HasOne("Dsw2026Tpi.Domain.Entities.Speciality", "Speciality")
                         .WithMany()
-                        .HasForeignKey("SpecialityId");
+                        .HasForeignKey("SpecialityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Speciality");
                 });
