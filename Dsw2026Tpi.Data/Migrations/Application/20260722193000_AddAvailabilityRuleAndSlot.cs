@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Dsw2026Tpi.Data.Migrations.Domain
+namespace Dsw2026Tpi.Data.Migrations.Application
 {
     /// <inheritdoc />
     public partial class AddAvailabilityRuleAndSlot : Migration
@@ -11,8 +11,6 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-
-
             migrationBuilder.CreateTable(
                 name: "AvailabilityRules",
                 columns: table => new
@@ -30,7 +28,7 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     ExcludedDatesCsv = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -56,7 +54,7 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
                     Capacity = table.Column<int>(type: "int", nullable: false),
                     BookedCount = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -88,7 +86,6 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
                 name: "IX_AvailabilitySlots_RuleId",
                 table: "AvailabilitySlots",
                 column: "RuleId");
-
         }
 
         /// <inheritdoc />
@@ -96,10 +93,9 @@ namespace Dsw2026Tpi.Data.Migrations.Domain
         {
             migrationBuilder.DropTable(
                 name: "AvailabilitySlots");
+
             migrationBuilder.DropTable(
                 name: "AvailabilityRules");
-
-
         }
     }
 }

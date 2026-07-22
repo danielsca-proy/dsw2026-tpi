@@ -16,8 +16,7 @@ public class AvailabilitySlot : EntityBase
     public int Capacity { get; set; } = 1;
     public int BookedCount { get; set; } = 0;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? UpdatedAt { get; set; }
+
 
     public TimeSpan Duration => End - Start;
 }
