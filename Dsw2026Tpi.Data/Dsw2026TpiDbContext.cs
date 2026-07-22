@@ -10,6 +10,10 @@ public class Dsw2026TpiDbContext: DbContext
     {
     }
 
+    public DbSet<Dsw2026Tpi.Domain.Entities.AvailabilityRule> AvailabilityRules { get; set; }
+    public DbSet<Dsw2026Tpi.Domain.Entities.AvailabilitySlot> AvailabilitySlots { get; set; }
+
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
