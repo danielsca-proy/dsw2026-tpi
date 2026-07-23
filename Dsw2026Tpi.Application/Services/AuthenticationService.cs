@@ -53,7 +53,7 @@ public class AuthenticationService : IAuthenticationService
         );
     }
 
-   public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
+public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
 {
     if (!request.Email.IsEmailValid())
         throw new ValidationException().WithDetail("email", "formato inválido");
@@ -63,8 +63,27 @@ public class AuthenticationService : IAuthenticationService
 
     var user = await _userManager.FindByEmailAsync(request.Email);
 
-    if (user is null || user.Dni != request.Dni)
+    if (user is null)
+    {
+        user = new ApplicationUser
+        {
+            UserName = request.Email,
+            Email = request.Email,
+            Dni = request.Dni,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var createResult = await _userManager.CreateAsync(user);
+        if (!createResult.Succeeded)
+            throw new AuthenticationException();
+
+        await _userManager.AddToRoleAsync(user, Roles.Patient);
+    }
+    else if (user.Dni != request.Dni)
+    {
         throw new AuthenticationException();
+    }
 
     var role = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
     var token = _jwtService.GenerateToken(user.UserName!, role);
