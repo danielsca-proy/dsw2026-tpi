@@ -22,11 +22,6 @@ public class AvailabilityController : AppController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Create([FromBody] AvailabilityModel.Request request)
     {
-        if (request.StartTime >= request.EndTime)
-        {
-            return BadRequest("La hora de inicio no puede ser antes de la de fin");
-        }
-
         var result = await _service.Create(request);
 
         return Created($"/api/availabilities/{result.Id}", result);
