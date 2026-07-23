@@ -78,6 +78,19 @@ public class DoctorService : IDoctorService
 
         return MapResponse(doctor);
     }
+    public async Task Delete(Guid id)
+    {
+        var doctor = await _persistence.GetById<Doctor>(id);
+
+        if (doctor is null || doctor.Deleted)
+        {
+            throw new EntityNotFoundException("Doctor not found");
+        }
+
+        doctor.Eliminar();
+
+        await _persistence.Update(doctor);
+    }
 
     private static void ValidateRequest(DoctorModel.Request request)
     {

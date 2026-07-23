@@ -15,4 +15,6 @@ public interface IDoctorService
     Task<DoctorModel.Response> Update(
         Guid id,
         DoctorModel.Request request);
+
+    Task Delete(Guid id);
 }
