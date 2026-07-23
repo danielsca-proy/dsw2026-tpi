@@ -27,8 +27,6 @@ public class AvailabilityRule : EntityBase
 
     public bool IsActive { get; set; } = true;
 
-    // Excepciones: fechas en las que no aplica (guardamos en otra tabla si se quiere)
-    // Para simplicidad almacenamos CSV de fechas ISO (yyyy-MM-dd)
     public string? ExcludedDatesCsv { get; set; }
 
 
