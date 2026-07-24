@@ -26,4 +26,15 @@ public class AvailabilityController : AppController
 
         return Created($"/api/availabilities/{result.Id}", result);
     }
+
+    [HttpPut]
+    [ProducesResponseType(typeof(AvailabilityModel.Response), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update([FromBody] AvailabilityModel.Request request)
+    {
+        var result = await _service.Update(request);
+
+        return Ok(result);
+    }
 }
