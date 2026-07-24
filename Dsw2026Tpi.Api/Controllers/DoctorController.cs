@@ -25,8 +25,8 @@ public class DoctorController : AppController
         [FromQuery] string? name = null)
     {
         var doctors = await _service.GetAll(
-            pageSize, 
-            pageIndex, 
+            pageSize,
+            pageIndex,
             name);
 
         return Ok(doctors);
@@ -34,7 +34,7 @@ public class DoctorController : AppController
 
     [HttpPost]
     [ProducesResponseType(
-        typeof(DoctorModel.Response), 
+        typeof(DoctorModel.Response),
         StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
