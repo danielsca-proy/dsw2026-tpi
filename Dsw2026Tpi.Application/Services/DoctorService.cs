@@ -79,6 +79,63 @@ public class DoctorService : IDoctorService
         return MapResponse(doctor);
     }
 
+    public async Task<IEnumerable<DoctorModel.AvailabilityResponse>>
+    GetAvailabilities(Guid id)
+    {
+        var doctor = await _persistence.GetById<Doctor>(id);
+
+        if (doctor is null || doctor.Deleted)
+            throw new EntityNotFoundException("Doctor not found");
+
+        var now = DateTime.UtcNow;
+        var monthStart = new DateTime(
+            now.Year,
+            now.Month,
+            1,
+            0,
+            0,
+            0,
+            DateTimeKind.Utc);
+
+        var nextMonth = monthStart.AddMonths(1);
+
+        var slots = await _persistence.GetFiltered<AvailabilitySlot>(
+            slot => slot.DoctorId == id &&
+                    slot.Start >= monthStart &&
+                    slot.Start < nextMonth);
+
+        if (slots is null)
+            return Enumerable.Empty<DoctorModel.AvailabilityResponse>();
+
+        return slots
+            .GroupBy(slot => new
+            {
+                slot.RuleId,
+                slot.Start.DayOfWeek
+            })
+            .Select(group => new DoctorModel.AvailabilityResponse(
+                GetDayName(group.Key.DayOfWeek),
+                group.Min(slot => slot.Start.TimeOfDay)
+                    .ToString(@"hh\:mm"),
+                group.Max(slot => slot.End.TimeOfDay)
+                    .ToString(@"hh\:mm")))
+            .OrderBy(item => GetDayOrder(item.Day))
+            .ToList();
+    }
+    public async Task Delete(Guid id)
+    {
+        var doctor = await _persistence.GetById<Doctor>(id);
+
+        if (doctor is null || doctor.Deleted)
+        {
+            throw new EntityNotFoundException("Doctor not found");
+        }
+
+        doctor.Eliminar();
+
+        await _persistence.Update(doctor);
+    }
+
     private static void ValidateRequest(DoctorModel.Request request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
@@ -110,6 +167,35 @@ public class DoctorService : IDoctorService
                     "es obligatorio");
     }
 
+    private static string GetDayName(DayOfWeek day)
+    {
+        return day switch
+        {
+            DayOfWeek.Monday => "LUNES",
+            DayOfWeek.Tuesday => "MARTES",
+            DayOfWeek.Wednesday => "MIÉRCOLES",
+            DayOfWeek.Thursday => "JUEVES",
+            DayOfWeek.Friday => "VIERNES",
+            DayOfWeek.Saturday => "SÁBADO",
+            DayOfWeek.Sunday => "DOMINGO",
+            _ => string.Empty
+        };
+    }
+
+    private static int GetDayOrder(string day)
+    {
+        return day switch
+        {
+            "LUNES" => 1,
+            "MARTES" => 2,
+            "MIÉRCOLES" => 3,
+            "JUEVES" => 4,
+            "VIERNES" => 5,
+            "SÁBADO" => 6,
+            "DOMINGO" => 7,
+            _ => 8
+        };
+    }
     private static DoctorModel.Response MapResponse(Doctor doctor)
     {
         return new DoctorModel.Response(
