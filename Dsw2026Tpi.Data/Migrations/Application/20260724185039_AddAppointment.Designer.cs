@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dsw2026Tpi.Data.Migrations.Application
 {
     [DbContext(typeof(Dsw2026TpiDbContext))]
-    [Migration("20260724003402_AddAppointment")]
+    [Migration("20260724185039_AddAppointment")]
     partial class AddAppointment
     {
         /// <inheritdoc />
@@ -237,7 +237,7 @@ namespace Dsw2026Tpi.Data.Migrations.Application
                     b.HasOne("Dsw2026Tpi.Domain.Entities.AvailabilitySlot", "AvailabilitySlot")
                         .WithMany()
                         .HasForeignKey("AvailabilitySlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("AvailabilitySlot");

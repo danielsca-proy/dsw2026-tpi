@@ -22,7 +22,8 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
         builder.HasOne(x => x.AvailabilitySlot)
             .WithMany()
             .HasForeignKey(x => x.AvailabilitySlotId)
-            .IsRequired();
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => x.PatientUserId);
     }

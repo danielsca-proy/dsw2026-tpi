@@ -234,7 +234,7 @@ namespace Dsw2026Tpi.Data.Migrations.Application
                     b.HasOne("Dsw2026Tpi.Domain.Entities.AvailabilitySlot", "AvailabilitySlot")
                         .WithMany()
                         .HasForeignKey("AvailabilitySlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("AvailabilitySlot");

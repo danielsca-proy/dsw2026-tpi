@@ -33,7 +33,7 @@ namespace Dsw2026Tpi.Data.Migrations.Application
                         column: x => x.AvailabilitySlotId,
                         principalTable: "AvailabilitySlots",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
