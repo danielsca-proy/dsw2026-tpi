@@ -23,13 +23,19 @@ public class DoctorController : AppController
         [FromQuery] int pageSize,
         [FromQuery] int pageIndex,
         [FromQuery] string? name = null)
-        {
-        var doctors = await _service.GetAll(pageSize, pageIndex, name);
+    {
+        var doctors = await _service.GetAll(
+            pageSize, 
+            pageIndex, 
+            name);
+
         return Ok(doctors);
-        }
+    }
 
     [HttpPost]
-    [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status201Created)]
+    [ProducesResponseType(
+        typeof(DoctorModel.Response), 
+        StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Create(
@@ -41,7 +47,9 @@ public class DoctorController : AppController
     }
 
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(typeof(DoctorModel.Response),StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(DoctorModel.Response),
+        StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(
