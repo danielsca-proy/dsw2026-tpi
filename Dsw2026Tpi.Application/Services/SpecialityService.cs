@@ -34,7 +34,7 @@ namespace Dsw2026Tpi.Application.Services
         {
             var speciality = await _persistence.GetById<Speciality>(id);
 
-            if (speciality is null)
+           if (speciality is null || speciality.Deleted)
                 throw new EntityNotFoundException("Speciality not found");
 
             speciality.MarkAsDeleted();
