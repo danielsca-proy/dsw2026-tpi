@@ -9,7 +9,7 @@ using System.Text;
 
 namespace Dsw2026Tpi.Application.Services
 {
-    internal class SpecialityService : ISpecialityService
+    public class SpecialityService : ISpecialityService
     {
         private readonly IPersistence _persistence;
 
@@ -38,7 +38,7 @@ namespace Dsw2026Tpi.Application.Services
         public async Task<Pagination<SpecialityModel.Response>> GetAll(int pageSize, int pageIndex, string? name = null)
         {
             var specialities = await _persistence.Paginate<Speciality, string>(pageSize, pageIndex,
-                s => string.IsNullOrWhiteSpace(name) || s.Name.Contains(name), x => x.Name);
+                s => !s.Deleted && (string.IsNullOrWhiteSpace(name) || s.Name.Contains(name)), x => x.Name);
 
             return specialities.Map(s => new SpecialityModel.Response(s.Id, s.Name, s.Description));
         }
