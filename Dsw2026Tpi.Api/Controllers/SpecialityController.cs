@@ -34,4 +34,39 @@ public class SpecialityController : AppController
         var specialities = await _service.GetAll(pageSize, pageIndex, name);
         return Ok(specialities);
     }
+
+    [HttpPost]
+    [ProducesResponseType(typeof(SpecialityModel.Response),StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create(
+    [FromBody] SpecialityModel.Request request)
+    {
+        var speciality = await _service.Create(request);
+
+        return Created($"/api/specialties/{speciality.Id}", speciality);
+    }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(SpecialityModel.Response),StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(
+        Guid id,
+        [FromBody] SpecialityModel.Request request)
+    {
+        var speciality = await _service.Update(id, request);
+
+        return Ok(speciality);
+    }
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await _service.Delete(id);
+
+        return NoContent();
+    }
+
 }
