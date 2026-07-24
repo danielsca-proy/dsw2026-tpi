@@ -32,6 +32,19 @@ public class DoctorController : AppController
         return Ok(doctors);
     }
 
+    [HttpGet("{id:guid}/availabilities")]
+    [ProducesResponseType(
+    typeof(IEnumerable<DoctorModel.AvailabilityResponse>),
+    StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAvailabilities(Guid id)
+    {
+        var availabilities =
+            await _service.GetAvailabilities(id);
+
+        return Ok(availabilities);
+    }
+
     [HttpPost]
     [ProducesResponseType(
         typeof(DoctorModel.Response),
