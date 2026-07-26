@@ -1,17 +1,54 @@
 ﻿using Dsw2026Tpi.Application.Dtos;
 using Dsw2026Tpi.Application.Interfaces;
+using Dsw2026Tpi.CrossCutting.Exceptions;
+using Dsw2026Tpi.Data.Identity;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
+using Microsoft.AspNetCore.Identity;
 
 namespace Dsw2026Tpi.Application.Services;
 
 public class AppointmentService : IAppointmentService
 {
     private readonly IPersistence _persistence;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public AppointmentService(IPersistence persistence)
+    public AppointmentService(IPersistence persistence, UserManager<ApplicationUser> userManager)
     {
         _persistence = persistence;
+        _userManager = userManager;
+    }
+
+    public async Task<AppointmentModel.CreateResponse> Create(AppointmentModel.CreateRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length < 5)
+            throw new ValidationException().WithDetail("reason", "obligatorio, mínimo 5 caracteres");
+
+        var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
+        if (doctor is null || doctor.Deleted)
+            throw new EntityNotFoundException("Doctor not found");
+
+        var slot = await _persistence.GetById<AvailabilitySlot>(request.AvailabilitySlotId);
+        if (slot is null || slot.DoctorId != request.DoctorId)
+            throw new EntityNotFoundException("AvailabilitySlot not found");
+
+        var patient = _userManager.Users.FirstOrDefault(u => u.Dni == request.PatientDni);
+        if (patient is null)
+            throw new EntityNotFoundException("Patient not found");
+
+        var appointment = new Appointment(slot, patient.Id, request.Reason);
+
+        slot.Status = SlotStatus.Booked;
+        slot.BookedCount++;
+
+        await _persistence.Add(appointment);
+        await _persistence.Update(slot);
+
+        return new AppointmentModel.CreateResponse(
+            appointment.Id,
+            appointment.Status.ToString(),
+            slot.Start,
+            slot.End);
     }
 
     public async Task<IEnumerable<AppointmentModel.DailyResponse>> GetByDate(DateOnly date)

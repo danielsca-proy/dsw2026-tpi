@@ -3,6 +3,7 @@ using Dsw2026Tpi.CrossCutting.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
+using Dsw2026Tpi.Application.Dtos;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
@@ -37,5 +38,14 @@ public class AppointmentController : AppController
         return Ok(appointments);
     }
 
-    // Julia agrega acá: POST, DELETE, GET /patient
+    [HttpPost]
+[Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
+[ProducesResponseType(typeof(AppointmentModel.CreateResponse), StatusCodes.Status201Created)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
+public async Task<IActionResult> Create([FromBody] AppointmentModel.CreateRequest request)
+{
+    var appointment = await _service.Create(request);
+    return Created($"/api/appointments/{appointment.Id}", appointment);
+}
 }
