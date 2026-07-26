@@ -72,4 +72,38 @@ public class AppointmentService : IAppointmentService
             a.AvailabilitySlot.End
         ));
     }
+
+    public async Task<Pagination<AppointmentModel.SearchResponse>> Search(
+    Guid? specialtyId, Guid? doctorId, long? dni, DateOnly? date, int pageSize, int pageIndex)
+    {
+        string? patientId = null;
+        if (dni.HasValue)
+        {
+            patientId = _userManager.Users.FirstOrDefault(u => u.Dni == dni.Value)?.Id;
+            if (patientId is null)
+                return Pagination<AppointmentModel.SearchResponse>.Empty;
+        }
+
+        DateTime? dayStart = date.HasValue ? date.Value.ToDateTime(TimeOnly.MinValue) : null;
+        DateTime? dayEnd = date.HasValue ? date.Value.ToDateTime(TimeOnly.MaxValue) : null;
+
+        var result = await _persistence.Paginate<Appointment, DateTime>(
+            pageSize, pageIndex,
+            a =>
+                (!specialtyId.HasValue || a.AvailabilitySlot!.Doctor!.SpecialityId == specialtyId) &&
+                (!doctorId.HasValue || a.AvailabilitySlot!.DoctorId == doctorId) &&
+                (patientId == null || a.PatientUserId == patientId) &&
+                (!dayStart.HasValue || (a.AvailabilitySlot!.Start >= dayStart && a.AvailabilitySlot!.Start <= dayEnd)),
+            a => a.AvailabilitySlot!.Start,
+            nameof(Appointment.AvailabilitySlot),
+            $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}",
+            $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}.{nameof(Doctor.Speciality)}");
+
+        return result.Map(a => new AppointmentModel.SearchResponse(
+            a.Id,
+            new AppointmentModel.SearchSpecialty(a.AvailabilitySlot!.Doctor!.SpecialityId, a.AvailabilitySlot.Doctor.Speciality?.Name ?? string.Empty),
+            new AppointmentModel.SearchDoctor(a.AvailabilitySlot.DoctorId, a.AvailabilitySlot.Doctor.Name),
+            a.AvailabilitySlot.Start,
+            a.Status.ToString()));
+    }
 }
