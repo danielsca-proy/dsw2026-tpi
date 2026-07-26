@@ -5,5 +5,6 @@ namespace Dsw2026Tpi.Application.Interfaces;
 public interface IAppointmentService
 {
     Task<IEnumerable<AppointmentModel.DailyResponse>> GetByDate(DateOnly date);
-    // Julia agrega acá: Create, Cancel, GetByPatient
+    Task<AppointmentModel.CreateResponse> Create(AppointmentModel.CreateRequest request);
+// Julia agrega acá (Día 7): Cancel, GetByPatient
 }
