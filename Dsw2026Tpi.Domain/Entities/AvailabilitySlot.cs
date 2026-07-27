@@ -19,4 +19,5 @@ public class AvailabilitySlot : EntityBase
 
 
     public TimeSpan Duration => End - Start;
+    public byte[] RowVersion { get; set; } = null!;
 }
