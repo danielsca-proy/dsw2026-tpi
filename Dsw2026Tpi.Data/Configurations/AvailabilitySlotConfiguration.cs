@@ -13,5 +13,6 @@ public class AvailabilitySlotConfiguration : IEntityTypeConfiguration<Availabili
         builder.Property(x => x.Start).IsRequired();
         builder.Property(x => x.End).IsRequired();
         builder.HasIndex(x => new { x.DoctorId, x.Start });
+        builder.Property(x => x.RowVersion).IsRowVersion();
     }
 }

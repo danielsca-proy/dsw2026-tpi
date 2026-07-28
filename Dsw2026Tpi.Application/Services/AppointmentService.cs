@@ -5,6 +5,7 @@ using Dsw2026Tpi.Data.Identity;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Dsw2026Tpi.Application.Services;
 
@@ -32,23 +33,86 @@ public class AppointmentService : IAppointmentService
         if (slot is null || slot.DoctorId != request.DoctorId)
             throw new EntityNotFoundException("AvailabilitySlot not found");
 
+        if (slot.Status != SlotStatus.Available)
+            throw new ConflictException("APPOINTMENT_CONFLICT", "El turno ya no está disponible");
+
+        if (slot.Start <= DateTime.UtcNow)
+            throw new ValidationException().WithDetail("availabilitySlotId", "no se pueden reservar turnos pasados");
+
         var patient = _userManager.Users.FirstOrDefault(u => u.Dni == request.PatientDni);
         if (patient is null)
             throw new EntityNotFoundException("Patient not found");
 
-        var appointment = new Appointment(slot, patient.Id, request.Reason);
-
         slot.Status = SlotStatus.Booked;
         slot.BookedCount++;
 
+        try
+        {
+            await _persistence.Update(slot);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictException("APPOINTMENT_CONFLICT", "El turno ya fue reservado por otro paciente, elegí otro horario");
+        }
+
+        var appointment = new Appointment(slot, patient.Id, request.Reason);
         await _persistence.Add(appointment);
-        await _persistence.Update(slot);
 
         return new AppointmentModel.CreateResponse(
             appointment.Id,
             appointment.Status.ToString(),
             slot.Start,
             slot.End);
+    }
+
+    public async Task Cancel(Guid id, long patientDni)
+    {
+        var appointment = await _persistence.GetById<Appointment>(id, nameof(Appointment.AvailabilitySlot));
+        if (appointment is null)
+            throw new EntityNotFoundException("Appointment not found");
+
+        var patient = _userManager.Users.FirstOrDefault(u => u.Dni == patientDni);
+        if (patient is null)
+            throw new EntityNotFoundException("Patient not found");
+
+        if (appointment.PatientUserId != patient.Id)
+            throw new EntityNotFoundException("Appointment not found");
+
+        if (appointment.Status != AppointmentStatus.Booked)
+            throw new ConflictException("APPOINTMENT_CONFLICT", "Solo se pueden cancelar turnos reservados");
+
+        appointment.Cancel();
+
+        if (appointment.AvailabilitySlot is not null)
+        {
+            appointment.AvailabilitySlot.Status = SlotStatus.Available;
+            appointment.AvailabilitySlot.BookedCount = Math.Max(0, appointment.AvailabilitySlot.BookedCount - 1);
+            await _persistence.Update(appointment.AvailabilitySlot);
+        }
+
+        await _persistence.Update(appointment);
+    }
+
+    public async Task<IEnumerable<AppointmentModel.PatientResponse>> GetByPatient(long dni)
+    {
+        var patient = _userManager.Users.FirstOrDefault(u => u.Dni == dni);
+        if (patient is null)
+            throw new EntityNotFoundException("Patient not found");
+
+        var appointments = await _persistence.GetFiltered<Appointment>(
+            a => a.PatientUserId == patient.Id && a.Status == AppointmentStatus.Booked,
+            nameof(Appointment.AvailabilitySlot),
+            $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}");
+
+        return (appointments ?? Enumerable.Empty<Appointment>()).Select(a => new AppointmentModel.PatientResponse(
+            a.Id,
+            a.AvailabilitySlot!.DoctorId,
+            a.AvailabilitySlot.Doctor?.Name ?? string.Empty,
+            a.Reason,
+            a.Status.ToString(),
+            a.AvailabilitySlot.Start,
+            a.AvailabilitySlot.End
+        ));
     }
 
     public async Task<IEnumerable<AppointmentModel.DailyResponse>> GetByDate(DateOnly date)
