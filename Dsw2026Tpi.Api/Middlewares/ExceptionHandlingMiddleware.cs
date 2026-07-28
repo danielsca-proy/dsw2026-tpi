@@ -39,7 +39,9 @@ public class ExceptionHandlingMiddleware
         {
             ValidationException => HttpStatusCode.BadRequest,
             EntityNotFoundException => HttpStatusCode.NotFound,
-            ConflictException or AuthenticationException => HttpStatusCode.Conflict,
+            BusinessRuleException => HttpStatusCode.Conflict,
+            ConflictException => HttpStatusCode.Conflict,
+            AuthenticationException => HttpStatusCode.Unauthorized,
             AuthorizationException => HttpStatusCode.Unauthorized,
             _ => HttpStatusCode.InternalServerError,
         };
