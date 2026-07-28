@@ -13,4 +13,5 @@ public static class AppointmentModel
         DateTime EndTime);
         public record CreateRequest(Guid DoctorId, Guid AvailabilitySlotId, long PatientDni, string Reason);
         public record CreateResponse(Guid Id, string Status, DateTime StartTime, DateTime EndTime);
+        public record PatientResponse(Guid Id, Guid DoctorId, string DoctorName, string Reason, string Status, DateTime StartTime, DateTime EndTime);
 }
