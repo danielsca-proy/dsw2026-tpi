@@ -65,6 +65,56 @@ public class AppointmentService : IAppointmentService
             slot.End);
     }
 
+    public async Task Cancel(Guid id, long patientDni)
+    {
+        var appointment = await _persistence.GetById<Appointment>(id, nameof(Appointment.AvailabilitySlot));
+        if (appointment is null)
+            throw new EntityNotFoundException("Appointment not found");
+
+        var patient = _userManager.Users.FirstOrDefault(u => u.Dni == patientDni);
+        if (patient is null)
+            throw new EntityNotFoundException("Patient not found");
+
+        if (appointment.PatientUserId != patient.Id)
+            throw new EntityNotFoundException("Appointment not found");
+
+        if (appointment.Status != AppointmentStatus.Booked)
+            throw new ConflictException("APPOINTMENT_CONFLICT", "Solo se pueden cancelar turnos reservados");
+
+        appointment.Cancel();
+
+        if (appointment.AvailabilitySlot is not null)
+        {
+            appointment.AvailabilitySlot.Status = SlotStatus.Available;
+            appointment.AvailabilitySlot.BookedCount = Math.Max(0, appointment.AvailabilitySlot.BookedCount - 1);
+            await _persistence.Update(appointment.AvailabilitySlot);
+        }
+
+        await _persistence.Update(appointment);
+    }
+
+    public async Task<IEnumerable<AppointmentModel.PatientResponse>> GetByPatient(long dni)
+    {
+        var patient = _userManager.Users.FirstOrDefault(u => u.Dni == dni);
+        if (patient is null)
+            throw new EntityNotFoundException("Patient not found");
+
+        var appointments = await _persistence.GetFiltered<Appointment>(
+            a => a.PatientUserId == patient.Id && a.Status == AppointmentStatus.Booked,
+            nameof(Appointment.AvailabilitySlot),
+            $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}");
+
+        return (appointments ?? Enumerable.Empty<Appointment>()).Select(a => new AppointmentModel.PatientResponse(
+            a.Id,
+            a.AvailabilitySlot!.DoctorId,
+            a.AvailabilitySlot.Doctor?.Name ?? string.Empty,
+            a.Reason,
+            a.Status.ToString(),
+            a.AvailabilitySlot.Start,
+            a.AvailabilitySlot.End
+        ));
+    }
+
     public async Task<IEnumerable<AppointmentModel.DailyResponse>> GetByDate(DateOnly date)
     {
         var dayStart = date.ToDateTime(TimeOnly.MinValue);

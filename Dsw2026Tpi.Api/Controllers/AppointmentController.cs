@@ -48,4 +48,25 @@ public async Task<IActionResult> Create([FromBody] AppointmentModel.CreateReques
     var appointment = await _service.Create(request);
     return Created($"/api/appointments/{appointment.Id}", appointment);
 }
+
+
+[HttpDelete("{id}")]
+[Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
+[ProducesResponseType(StatusCodes.Status204NoContent)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
+[ProducesResponseType(StatusCodes.Status409Conflict)]
+public async Task<IActionResult> Cancel(Guid id, [FromQuery] long dni)
+{
+    await _service.Cancel(id, dni);
+    return NoContent();
+}
+
+[HttpGet("patient")]
+[Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
+[ProducesResponseType(typeof(IEnumerable<AppointmentModel.PatientResponse>), StatusCodes.Status200OK)]
+public async Task<IActionResult> GetByPatient([FromQuery] long dni)
+{
+    var appointments = await _service.GetByPatient(dni);
+    return Ok(appointments);
+}
 }

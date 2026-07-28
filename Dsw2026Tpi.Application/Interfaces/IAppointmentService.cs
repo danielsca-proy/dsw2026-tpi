@@ -6,5 +6,6 @@ public interface IAppointmentService
 {
     Task<IEnumerable<AppointmentModel.DailyResponse>> GetByDate(DateOnly date);
     Task<AppointmentModel.CreateResponse> Create(AppointmentModel.CreateRequest request);
-// Julia agrega acá (Día 7): Cancel, GetByPatient
+    Task Cancel(Guid id, long patientDni);
+    Task<IEnumerable<AppointmentModel.PatientResponse>> GetByPatient(long dni);
 }
