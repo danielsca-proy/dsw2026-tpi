@@ -4,6 +4,6 @@ namespace Dsw2026Tpi.Application.Interfaces;
 
 public interface IAvailabilityService
 {
-    Task<AvailabilityModel.Response> Create(AvailabilityModel.Request request);
-    Task<AvailabilityModel.Response> Update(AvailabilityModel.Request request);
+    Task<List<AvailabilityModel.Response>> Create(AvailabilityModel.Request request);
+    Task<List<AvailabilityModel.Response>> Update(AvailabilityModel.Request request);
 }

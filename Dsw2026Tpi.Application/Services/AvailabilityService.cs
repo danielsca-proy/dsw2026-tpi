@@ -20,6 +20,38 @@ public class AvailabilityService : IAvailabilityService
         _persistence = persistence;
     }
 
+    private static readonly string[] ValidDayNames =
+    {
+        "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"
+    };
+
+    private static string NormalizeDayName(string day)
+    {
+        if (string.IsNullOrWhiteSpace(day))
+            throw new ValidationException().WithDetail("days", "día inválido");
+
+        var normalized = day.Trim().ToUpperInvariant()
+            .Replace("É", "E").Replace("Á", "A");
+
+        if (!ValidDayNames.Contains(normalized))
+            throw new ValidationException().WithDetail("days",
+                $"día inválido: '{day}'. Debe ser LUNES, MARTES, MIERCOLES, JUEVES, VIERNES, SABADO o DOMINGO");
+
+        return normalized;
+    }
+
+    private static string GetDayName(DayOfWeek dow) => dow switch
+    {
+        DayOfWeek.Monday => "LUNES",
+        DayOfWeek.Tuesday => "MARTES",
+        DayOfWeek.Wednesday => "MIERCOLES",
+        DayOfWeek.Thursday => "JUEVES",
+        DayOfWeek.Friday => "VIERNES",
+        DayOfWeek.Saturday => "SABADO",
+        DayOfWeek.Sunday => "DOMINGO",
+        _ => throw new ArgumentOutOfRangeException(nameof(dow))
+    };
+
     private async Task GenerateSlotsForRule(AvailabilityRule rule, DateTime fromDate, DateTime toDate)
     {
         // Convertir CSV de feriados a conjunto de DateOnly
@@ -32,14 +64,17 @@ public class AvailabilityService : IAvailabilityService
             }
         }
 
-        var daysOfWeek = rule.DaysOfWeekCsv?.Split(',').Select(int.Parse).ToHashSet() ?? new HashSet<int>();
+        var daysOfWeek = rule.DaysOfWeekCsv?
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim().ToUpperInvariant())
+            .ToHashSet() ?? new HashSet<string>();
 
         var current = fromDate.Date;
         var slotsToAdd = new List<AvailabilitySlot>();
 
         while (current.Date <= toDate.Date)
         {
-            if (!daysOfWeek.Contains((int)current.DayOfWeek))
+            if (!daysOfWeek.Contains(GetDayName(current.DayOfWeek)))
             {
                 current = current.AddDays(1);
                 continue;
@@ -91,109 +126,7 @@ public class AvailabilityService : IAvailabilityService
         }
     }
 
-   public async Task<AvailabilityModel.Response> Create(AvailabilityModel.Request request)
-{
-    if (!Guid.TryParse(request.DoctorId, out var doctorId))
-        throw new ValidationException().WithDetail("doctorId", "formato inválido, se requiere Guid");
-
-    var doctor = await _persistence.GetById<Doctor>(doctorId);
-    if (doctor is null || doctor.Deleted || !doctor.IsActive)
-        throw new EntityNotFoundException("Doctor");
-
-    if (request.Days == null || !request.Days.Any())
-        throw new ValidationException().WithDetail("days", "se requiere al menos un dia con horario");
-
-    // Parsear cada día individualmente, sin perder su horario propio
-    var parsed = new List<(int Day, TimeSpan Start, TimeSpan End)>();
-
-    foreach (var d in request.Days)
-    {
-        int dayNum;
-        if (!int.TryParse(d.Day, out dayNum))
-        {
-            if (!Enum.TryParse<System.DayOfWeek>(d.Day, true, out var dow))
-                throw new ValidationException().WithDetail($"days[{d.Day}]", "dia inválido, use 0..6 o nombre del día");
-            dayNum = (int)dow;
-        }
-
-        if (dayNum < 0 || dayNum > 6)
-            throw new ValidationException().WithDetail($"days[{d.Day}]", "dia inválido, debe ser 0..6");
-
-        if (!TimeSpan.TryParseExact(d.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
-            throw new ValidationException().WithDetail($"days[{d.Day}].startTime", "formato inválido, se requiere HH:mm");
-
-        if (!TimeSpan.TryParseExact(d.EndTime, @"hh\:mm", CultureInfo.InvariantCulture, out var end))
-            throw new ValidationException().WithDetail($"days[{d.Day}].endTime", "formato inválido, se requiere HH:mm");
-
-        if (start >= end)
-            throw new ValidationException().WithDetail($"days[{d.Day}]", "La hora de inicio debe ser antes de la hora de finalización");
-
-        parsed.Add((dayNum, start, end));
-    }
-
-    // Verificar solapamientos con reglas existentes del mismo doctor, por cada día parseado
-    var existing = await _persistence.GetFiltered<AvailabilityRule>(r => r.DoctorId == doctorId);
-    foreach (var (day, start, end) in parsed)
-    {
-        foreach (var er in existing ?? Enumerable.Empty<AvailabilityRule>())
-        {
-            var existingDays = er.DaysOfWeekCsv?.Split(',').Select(int.Parse).ToHashSet() ?? new HashSet<int>();
-            if (!existingDays.Contains(day)) continue;
-
-            if (er.StartTime < end && er.EndTime > start)
-                throw new BusinessRuleException("La regla de disponibilidad solapa con una regla existente.", "AVAILABILITY_OVERLAP");
-        }
-    }
-
-    // Agrupar los días que comparten el mismo horario → una regla por grupo
-    var groups = parsed.GroupBy(p => (p.Start, p.End));
-    var createdRules = new List<AvailabilityRule>();
-
-    foreach (var group in groups)
-    {
-        var rule = new AvailabilityRule
-        {
-            Id = Guid.NewGuid(),
-            DoctorId = doctorId,
-            EffectiveFrom = DateTime.UtcNow,
-            EffectiveTo = null,
-            Recurrence = RecurrenceType.Weekly,
-            DaysOfWeekCsv = string.Join(',', group.Select(g => g.Day)),
-            StartTime = group.Key.Start,
-            EndTime = group.Key.End,
-            SlotDuration = TimeSpan.FromMinutes(30),
-            Capacity = 1,
-            IsActive = true,
-            ExcludedDatesCsv = null
-        };
-
-        await _persistence.Add(rule);
-        await GenerateSlotsForRule(rule, DateTime.UtcNow.Date,
-            new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.DaysInMonth(DateTime.UtcNow.Year, DateTime.UtcNow.Month)));
-
-        createdRules.Add(rule);
-    }
-
-    // Devolvemos la primera regla creada como referencia (Response solo soporta una)
-    var main = createdRules.First();
-    return new AvailabilityModel.Response
-    {
-        Id = main.Id,
-        DoctorId = main.DoctorId,
-        EffectiveFrom = main.EffectiveFrom,
-        EffectiveTo = main.EffectiveTo,
-        Recurrence = main.Recurrence,
-        DaysOfWeekCsv = string.Join(';', createdRules.Select(r => r.DaysOfWeekCsv)),
-        StartTime = main.StartTime,
-        EndTime = main.EndTime,
-        SlotDuration = main.SlotDuration,
-        Capacity = main.Capacity,
-        IsActive = main.IsActive,
-        ExcludedDatesCsv = main.ExcludedDatesCsv
-    };
-}
-
-    public async Task<AvailabilityModel.Response> Update(AvailabilityModel.Request request)
+    public async Task<List<AvailabilityModel.Response>> Create(AvailabilityModel.Request request)
     {
         if (!Guid.TryParse(request.DoctorId, out var doctorId))
             throw new ValidationException().WithDetail("doctorId", "formato inválido, se requiere Guid");
@@ -206,32 +139,132 @@ public class AvailabilityService : IAvailabilityService
             throw new ValidationException().WithDetail("days", "se requiere al menos un dia con horario");
 
         // Parsear cada día individualmente, sin perder su horario propio
-        var parsed = new List<(int Day, TimeSpan Start, TimeSpan End)>();
+        var parsed = new List<(string Day, TimeSpan Start, TimeSpan End)>();
 
         foreach (var d in request.Days)
         {
-            int dayNum;
-            if (!int.TryParse(d.Day, out dayNum))
-            {
-                if (!Enum.TryParse<System.DayOfWeek>(d.Day, true, out var dow))
-                    throw new ValidationException().WithDetail($"days[{d.Day}]", "dia invalido, use 0..6 o nombre del día");
-                dayNum = (int)dow;
-            }
-
-            if (dayNum < 0 || dayNum > 6)
-                throw new ValidationException().WithDetail($"days[{d.Day}]", "dia invalido, debe ser 0..6");
+            var dayName = NormalizeDayName(d.Day);
 
             if (!TimeSpan.TryParseExact(d.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
-                throw new ValidationException().WithDetail($"days[{d.Day}].startTime", "formato invalido, se requiere HH:mm");
+                throw new ValidationException().WithDetail($"days[{d.Day}].startTime", "formato inválido, se requiere HH:mm");
 
             if (!TimeSpan.TryParseExact(d.EndTime, @"hh\:mm", CultureInfo.InvariantCulture, out var end))
-                throw new ValidationException().WithDetail($"days[{d.Day}].endTime", "formato invalido, se requiere HH:mm");
+                throw new ValidationException().WithDetail($"days[{d.Day}].endTime", "formato inválido, se requiere HH:mm");
 
             if (start >= end)
                 throw new ValidationException().WithDetail($"days[{d.Day}]", "La hora de inicio debe ser antes de la hora de finalización");
 
-            parsed.Add((dayNum, start, end));
+            parsed.Add((dayName, start, end));
         }
+
+        // Verificar solapamientos con reglas existentes del mismo doctor, por cada día parseado
+        var existing = await _persistence.GetFiltered<AvailabilityRule>(r => r.DoctorId == doctorId);
+        foreach (var (day, start, end) in parsed)
+        {
+            foreach (var er in existing ?? Enumerable.Empty<AvailabilityRule>())
+            {
+                var existingDays = er.DaysOfWeekCsv?
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim().ToUpperInvariant())
+                    .ToHashSet() ?? new HashSet<string>();
+
+                if (!existingDays.Contains(day)) continue;
+
+                if (er.StartTime < end && er.EndTime > start)
+                    throw new BusinessRuleException("La regla de disponibilidad solapa con una regla existente.", "AVAILABILITY_OVERLAP");
+            }
+        }
+
+        // Agrupar los días que comparten el mismo horario → una regla por grupo
+        var groups = parsed.GroupBy(p => (p.Start, p.End));
+        var createdRules = new List<AvailabilityRule>();
+
+        foreach (var group in groups)
+        {
+            var rule = new AvailabilityRule
+            {
+                Id = Guid.NewGuid(),
+                DoctorId = doctorId,
+                EffectiveFrom = DateTime.UtcNow,
+                EffectiveTo = null,
+                Recurrence = RecurrenceType.Weekly,
+                DaysOfWeekCsv = string.Join(',', group.Select(g => g.Day)),
+                StartTime = group.Key.Start,
+                EndTime = group.Key.End,
+                SlotDuration = TimeSpan.FromMinutes(30),
+                Capacity = 1,
+                IsActive = true,
+                ExcludedDatesCsv = null
+            };
+
+            await _persistence.Add(rule);
+            await GenerateSlotsForRule(rule, DateTime.UtcNow.Date,
+                new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.DaysInMonth(DateTime.UtcNow.Year, DateTime.UtcNow.Month)));
+
+            createdRules.Add(rule);
+        }
+
+        return createdRules.Select(r => new AvailabilityModel.Response
+        {
+            Id = r.Id,
+            DoctorId = r.DoctorId,
+            EffectiveFrom = r.EffectiveFrom,
+            EffectiveTo = r.EffectiveTo,
+            Recurrence = r.Recurrence,
+            DaysOfWeekCsv = r.DaysOfWeekCsv,
+            StartTime = r.StartTime,
+            EndTime = r.EndTime,
+            SlotDuration = r.SlotDuration,
+            Capacity = r.Capacity,
+            IsActive = r.IsActive,
+            ExcludedDatesCsv = r.ExcludedDatesCsv
+        }).ToList();
+    }
+
+    public async Task<List<AvailabilityModel.Response>> Update(AvailabilityModel.Request request)
+    {
+        if (!Guid.TryParse(request.DoctorId, out var doctorId))
+            throw new ValidationException().WithDetail("doctorId", "formato inválido, se requiere Guid");
+
+        var doctor = await _persistence.GetById<Doctor>(doctorId);
+        if (doctor is null || doctor.Deleted || !doctor.IsActive)
+            throw new EntityNotFoundException("Doctor");
+
+        if (request.Days == null || !request.Days.Any())
+            throw new ValidationException().WithDetail("days", "se requiere al menos un dia con horario");
+
+        // Parsear cada día individualmente, sin perder su horario propio
+        var parsed = new List<(string Day, TimeSpan Start, TimeSpan End)>();
+
+        foreach (var d in request.Days)
+        {
+            var dayName = NormalizeDayName(d.Day);
+
+            if (!TimeSpan.TryParseExact(d.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
+                throw new ValidationException().WithDetail($"days[{d.Day}].startTime", "formato inválido, se requiere HH:mm");
+
+            if (!TimeSpan.TryParseExact(d.EndTime, @"hh\:mm", CultureInfo.InvariantCulture, out var end))
+                throw new ValidationException().WithDetail($"days[{d.Day}].endTime", "formato inválido, se requiere HH:mm");
+
+            if (start >= end)
+                throw new ValidationException().WithDetail($"days[{d.Day}]", "La hora de inicio debe ser antes de la hora de finalización");
+
+            parsed.Add((dayName, start, end));
+        }
+
+        // Rango del mes actual (se usa tanto para el chequeo como para el borrado/regeneración)
+        var monthStartDate = DateTime.UtcNow.Date;
+        var monthEndDate = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month,
+            DateTime.DaysInMonth(DateTime.UtcNow.Year, DateTime.UtcNow.Month));
+
+        // Antes de borrar nada: si hay turnos ya reservados este mes para este médico, frenamos.
+        var slotsInMonth = await _persistence.GetFiltered<AvailabilitySlot>(
+            s => s.DoctorId == doctorId && s.Start >= monthStartDate && s.Start <= monthEndDate);
+
+        if (slotsInMonth != null && slotsInMonth.Any(s => s.Status == SlotStatus.Booked))
+            throw new BusinessRuleException(
+                "No se puede actualizar la disponibilidad: existen turnos reservados en el mes actual.",
+                "AVAILABILITY_HAS_BOOKED_SLOTS");
 
         // Eliminar reglas existentes del médico que sean efectivas en el mes actual (aproximación simple)
         var now = DateTime.UtcNow;
@@ -251,16 +284,10 @@ public class AvailabilityService : IAvailabilityService
         }
 
         // Eliminar slots existentes del doctor dentro del rango del mes
-        var monthStartDate = DateTime.UtcNow.Date;
-        var monthEndDate = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month,
-            DateTime.DaysInMonth(DateTime.UtcNow.Year, DateTime.UtcNow.Month));
-
-        var existingSlots = await _persistence.GetFiltered<AvailabilitySlot>(
-            s => s.DoctorId == doctorId && s.Start >= monthStartDate && s.Start <= monthEndDate);
-
-        if (existingSlots != null)
+        // (ya sabemos que ninguno está Booked, por el chequeo de arriba)
+        if (slotsInMonth != null)
         {
-            foreach (var es in existingSlots)
+            foreach (var es in slotsInMonth)
             {
                 await _persistence.Delete(es);
             }
@@ -294,21 +321,20 @@ public class AvailabilityService : IAvailabilityService
             createdRules.Add(rule);
         }
 
-        var main = createdRules.First();
-        return new AvailabilityModel.Response
+        return createdRules.Select(r => new AvailabilityModel.Response
         {
-            Id = main.Id,
-            DoctorId = main.DoctorId,
-            EffectiveFrom = main.EffectiveFrom,
-            EffectiveTo = main.EffectiveTo,
-            Recurrence = main.Recurrence,
-            DaysOfWeekCsv = string.Join(';', createdRules.Select(r => r.DaysOfWeekCsv)),
-            StartTime = main.StartTime,
-            EndTime = main.EndTime,
-            SlotDuration = main.SlotDuration,
-            Capacity = main.Capacity,
-            IsActive = main.IsActive,
-            ExcludedDatesCsv = main.ExcludedDatesCsv
-        };
+            Id = r.Id,
+            DoctorId = r.DoctorId,
+            EffectiveFrom = r.EffectiveFrom,
+            EffectiveTo = r.EffectiveTo,
+            Recurrence = r.Recurrence,
+            DaysOfWeekCsv = r.DaysOfWeekCsv,
+            StartTime = r.StartTime,
+            EndTime = r.EndTime,
+            SlotDuration = r.SlotDuration,
+            Capacity = r.Capacity,
+            IsActive = r.IsActive,
+            ExcludedDatesCsv = r.ExcludedDatesCsv
+        }).ToList();
     }
 }
