@@ -1,6 +1,7 @@
 ﻿using Dsw2026Tpi.Application.Dtos;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Exceptions;
+using Dsw2026Tpi.CrossCutting.Resources;
 using Dsw2026Tpi.Data.Identity;
 using Dsw2026Tpi.Domain.Entities;
 using Dsw2026Tpi.Domain.Interfaces;
@@ -27,21 +28,21 @@ public class AppointmentService : IAppointmentService
 
         var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
         if (doctor is null || doctor.Deleted)
-            throw new EntityNotFoundException("Doctor not found");
+            throw new EntityNotFoundException("Doctor");
 
         var slot = await _persistence.GetById<AvailabilitySlot>(request.AvailabilitySlotId);
         if (slot is null || slot.DoctorId != request.DoctorId)
-            throw new EntityNotFoundException("AvailabilitySlot not found");
+            throw new EntityNotFoundException("AvailabilitySlot");
 
         if (slot.Status != SlotStatus.Available)
-            throw new ConflictException("APPOINTMENT_CONFLICT", "El turno ya no está disponible");
+            throw new ConflictException(nameof(ErrorCodes.APPOINTMENT_CONFLICT), "El turno ya no está disponible");
 
         if (slot.Start <= DateTime.UtcNow)
             throw new ValidationException().WithDetail("availabilitySlotId", "no se pueden reservar turnos pasados");
 
         var patient = _userManager.Users.FirstOrDefault(u => u.Dni == request.PatientDni);
         if (patient is null)
-            throw new EntityNotFoundException("Patient not found");
+            throw new EntityNotFoundException("Patient");
 
         slot.Status = SlotStatus.Booked;
         slot.BookedCount++;
@@ -52,7 +53,7 @@ public class AppointmentService : IAppointmentService
         }
         catch (DbUpdateConcurrencyException)
         {
-            throw new ConflictException("APPOINTMENT_CONFLICT", "El turno ya fue reservado por otro paciente, elegí otro horario");
+            throw new ConflictException(nameof(ErrorCodes.APPOINTMENT_CONFLICT), "El turno ya fue reservado por otro paciente, elegí otro horario");
         }
 
         var appointment = new Appointment(slot, patient.Id, request.Reason);
@@ -69,17 +70,17 @@ public class AppointmentService : IAppointmentService
     {
         var appointment = await _persistence.GetById<Appointment>(id, nameof(Appointment.AvailabilitySlot));
         if (appointment is null)
-            throw new EntityNotFoundException("Appointment not found");
+            throw new EntityNotFoundException("Appointment");
 
         var patient = _userManager.Users.FirstOrDefault(u => u.Dni == patientDni);
         if (patient is null)
-            throw new EntityNotFoundException("Patient not found");
+            throw new EntityNotFoundException("Patient");
 
         if (appointment.PatientUserId != patient.Id)
-            throw new EntityNotFoundException("Appointment not found");
+            throw new EntityNotFoundException("Appointment");
 
         if (appointment.Status != AppointmentStatus.Booked)
-            throw new ConflictException("APPOINTMENT_CONFLICT", "Solo se pueden cancelar turnos reservados");
+            throw new ConflictException(nameof(ErrorCodes.APPOINTMENT_CONFLICT), "Solo se pueden cancelar turnos reservados");
 
         appointment.Cancel();
 
@@ -97,7 +98,7 @@ public class AppointmentService : IAppointmentService
     {
         var patient = _userManager.Users.FirstOrDefault(u => u.Dni == dni);
         if (patient is null)
-            throw new EntityNotFoundException("Patient not found");
+            throw new EntityNotFoundException("Patient");
 
         var appointments = await _persistence.GetFiltered<Appointment>(
             a => a.PatientUserId == patient.Id && a.Status == AppointmentStatus.Booked,
