@@ -120,8 +120,8 @@
   <data name="AUTHENTICATION_FAILED" xml:space="preserve">
     <value>Usuario o contraseña incorrectos</value>
   </data>
-  <data name="AUTHORIZATION_FAILED" xml:space="preserve">
-    <value>Se requieren permisos para la operación solicitada</value>
+  <data name="APPOINTMENT_CONFLICT" xml:space="preserve">
+    <value>El turno no está disponible para la operación solicitada</value>
   </data>
   <data name="ENTITY_NOTFOUND" xml:space="preserve">
     <value>La entidad {0} no se encontró</value>
