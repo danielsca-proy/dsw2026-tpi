@@ -1,7 +1,6 @@
 ﻿using Dsw2026Tpi.Application.Dtos;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Exceptions;
-using Dsw2026Tpi.CrossCutting.Helpers;
 using Dsw2026Tpi.CrossCutting.Identity;
 using Dsw2026Tpi.CrossCutting.Resources;
 using Dsw2026Tpi.Data.Identity;
@@ -29,11 +28,11 @@ public class AuthenticationService : IAuthenticationService
         _roleManager = roleManager;
         _jwtService = jwtService;
         _logger = logger;
+
     }
 
     public async Task<LoginAdminModel.Response> LoginAdmin(LoginAdminModel.Request request)
     {
-        if (!request.Email.IsEmailValid()) throw new AuthenticationException();
         var user = await _userManager.FindByEmailAsync(request.Email) ?? throw new AuthenticationException();
         var result = await _signInManager.CheckPassword(user, request.Password);
 
@@ -44,7 +43,6 @@ public class AuthenticationService : IAuthenticationService
         }
 
         var role = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
-
         var token  = _jwtService.GenerateToken(user.UserName!, role);
 
         return new LoginAdminModel.Response(
@@ -53,49 +51,40 @@ public class AuthenticationService : IAuthenticationService
         );
     }
 
-public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
-{
-    if (!request.Email.IsEmailValid())
-        throw new ValidationException().WithDetail("email", "formato inválido");
-
-    if (!request.Dni.IsDniValid())
-        throw new ValidationException().WithDetail("dni", "debe tener 7 u 8 dígitos");
-
-    var user = await _userManager.FindByEmailAsync(request.Email);
-
-    if (user is null)
+    public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
     {
-        user = new ApplicationUser
+        var user = await _userManager.FindByEmailAsync(request.Email);
+
+        if (user is null)
         {
-            UserName = request.Email,
-            Email = request.Email,
-            Dni = request.Dni,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+            user = new ApplicationUser
+            {
+                UserName = request.Email,
+                Email = request.Email,
+                Dni = request.Dni,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
-        var createResult = await _userManager.CreateAsync(user);
-        if (!createResult.Succeeded)
+            var createResult = await _userManager.CreateAsync(user);
+            if (!createResult.Succeeded)
+                throw new AuthenticationException();
+
+            await _userManager.AddToRoleAsync(user, Roles.Patient);
+        }
+        else if (user.Dni != request.Dni)
+        {
             throw new AuthenticationException();
+        }
 
-        await _userManager.AddToRoleAsync(user, Roles.Patient);
+        var role = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
+        var token = _jwtService.GenerateToken(user.UserName!, role);
+
+        return new LoginPatientModel.Response(token, role);
     }
-    else if (user.Dni != request.Dni)
-    {
-        throw new AuthenticationException();
-    }
-
-    var role = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
-    var token = _jwtService.GenerateToken(user.UserName!, role);
-
-    return new LoginPatientModel.Response(token, role);
-}
 
     public async Task<RegisterModel.Response> Register(RegisterModel.Request request)
     {
-        if (!request.Email.IsEmailValid()) throw new ValidationException(ErrorCodes.REGISTER_USER_INVALID,
-            nameof(ErrorCodes.REGISTER_USER_INVALID));
-
         var user = new ApplicationUser
         {
             UserName = request.Email,

@@ -1,6 +1,8 @@
 ﻿using Dsw2026Tpi.Application.Dtos;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Identity;
+using FluentValidation;
+using ValidationException = Dsw2026Tpi.CrossCutting.Exceptions.ValidationException;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +13,14 @@ namespace Dsw2026Tpi.Api.Controllers;
 public class DoctorController : AppController
 {
     private readonly IDoctorService _service;
+    private readonly IValidator<DoctorModel.Request> _requestValidator;
+    private readonly IValidator<DoctorModel.GetAllQuery> _getAllValidator;
 
-    public DoctorController(IDoctorService service)
+    public DoctorController(IDoctorService service, IValidator<DoctorModel.Request> requestValidator,   IValidator<DoctorModel.GetAllQuery> getAllValidator)
     {
         _service = service;
+        _requestValidator = requestValidator;
+        _getAllValidator = getAllValidator;
     }
 
     [HttpGet]
@@ -24,6 +30,10 @@ public class DoctorController : AppController
         [FromQuery] int pageIndex,
         [FromQuery] string? name = null)
     {
+        var query = new DoctorModel.GetAllQuery(pageSize, pageIndex, name);
+        var validation = await _getAllValidator.ValidateAsync(query);
+        Invalidez(validation);
+
         var doctors = await _service.GetAll(
             pageSize,
             pageIndex,
@@ -39,9 +49,7 @@ public class DoctorController : AppController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAvailabilities(Guid id)
     {
-        var availabilities =
-            await _service.GetAvailabilities(id);
-
+        var availabilities = await _service.GetAvailabilities(id);
         return Ok(availabilities);
     }
 
@@ -54,8 +62,10 @@ public class DoctorController : AppController
     public async Task<IActionResult> Create(
         [FromBody] DoctorModel.Request request)
     {
-        var doctor = await _service.Create(request);
+        var validation = await _requestValidator.ValidateAsync(request);
+        Invalidez(validation);
 
+        var doctor = await _service.Create(request);
         return Created($"/api/doctors/{doctor.Id}", doctor);
     }
 
@@ -69,8 +79,10 @@ public class DoctorController : AppController
         Guid id,
         [FromBody] DoctorModel.Request request)
     {
-        var doctor = await _service.Update(id, request);
+        var validation = await _requestValidator.ValidateAsync(request);
+        Invalidez(validation);
 
+        var doctor = await _service.Update(id, request);
         return Ok(doctor);
     }
     [HttpDelete("{id:guid}")]
@@ -79,7 +91,16 @@ public class DoctorController : AppController
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.Delete(id);
-
         return NoContent();
+    }
+
+    //Mismo metodo para evitar redundancia de codigoo
+    private static void Invalidez(FluentValidation.Results.ValidationResult validation)
+    {
+        if (validation.IsValid) return;
+        var ex = new ValidationException();
+        foreach (var error in validation.Errors)
+            ex.WithDetail(error.PropertyName, error.ErrorMessage);
+        throw ex;
     }
 }
