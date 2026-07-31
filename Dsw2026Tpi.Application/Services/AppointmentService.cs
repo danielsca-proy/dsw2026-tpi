@@ -34,11 +34,11 @@ public class AppointmentService : IAppointmentService
         if (slot is null || slot.DoctorId != request.DoctorId)
             throw new EntityNotFoundException("AvailabilitySlot");
 
-        if (slot.Status != SlotStatus.Available)
-            throw new ConflictException(nameof(ErrorCodes.APPOINTMENT_CONFLICT), "El turno ya no está disponible");
-
         if (slot.Start <= DateTime.UtcNow)
             throw new ValidationException().WithDetail("availabilitySlotId", "no se pueden reservar turnos pasados");
+
+        if (slot.Status != SlotStatus.Available)
+            throw new ConflictException(nameof(ErrorCodes.APPOINTMENT_CONFLICT), "El turno ya no está disponible");
 
         var patient = _userManager.Users.FirstOrDefault(u => u.Dni == request.PatientDni);
         if (patient is null)
