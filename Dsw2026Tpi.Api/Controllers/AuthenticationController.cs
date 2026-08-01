@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
-[Route("auth")]
+[Route("api/auth")]
 public class AuthenticationController : AppController
 {
     private readonly IAuthenticationService _authenticationService;
@@ -62,7 +62,6 @@ public class AuthenticationController : AppController
     private static void Invalidez(FluentValidation.Results.ValidationResult validation)
     {
         if (validation.IsValid) return;
-
         var ex = new ValidationException();
         foreach (var error in validation.Errors)
             ex.WithDetail(error.PropertyName, error.ErrorMessage);
