@@ -21,6 +21,7 @@ public class AppointmentService : IAppointmentService
         _userManager = userManager;
     }
 
+    //metodo para la creacion de un turno
     public async Task<AppointmentModel.CreateResponse> Create(AppointmentModel.CreateRequest request)
     {
         var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
@@ -55,14 +56,10 @@ public class AppointmentService : IAppointmentService
 
         var appointment = new Appointment(slot, patient.Id, request.Reason);
         await _persistence.Add(appointment);
-
-        return new AppointmentModel.CreateResponse(
-            appointment.Id,
-            appointment.Status.ToString(),
-            slot.Start,
-            slot.End);
+        return new AppointmentModel.CreateResponse(appointment.Id, appointment.Status.ToString(), slot.Start, slot.End);
     }
 
+    //metodo para cancelar un turno
     public async Task Cancel(Guid id, long patientDni)
     {
         var appointment = await _persistence.GetById<Appointment>(id, nameof(Appointment.AvailabilitySlot));
@@ -91,16 +88,14 @@ public class AppointmentService : IAppointmentService
         await _persistence.Update(appointment);
     }
 
+    //metodo para obtener los turnos de un paciente mediante su dni
     public async Task<IEnumerable<AppointmentModel.PatientResponse>> GetByPatient(long dni)
     {
         var patient = _userManager.Users.FirstOrDefault(u => u.Dni == dni);
         if (patient is null)
             throw new EntityNotFoundException("Patient");
 
-        var appointments = await _persistence.GetFiltered<Appointment>(
-            a => a.PatientUserId == patient.Id && a.Status == AppointmentStatus.Booked,
-            nameof(Appointment.AvailabilitySlot),
-            $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}");
+        var appointments = await _persistence.GetFiltered<Appointment>(a => a.PatientUserId == patient.Id && a.Status == AppointmentStatus.Booked, nameof(Appointment.AvailabilitySlot), $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}");
 
         return (appointments ?? Enumerable.Empty<Appointment>()).Select(a => new AppointmentModel.PatientResponse(
             a.Id,
@@ -113,15 +108,13 @@ public class AppointmentService : IAppointmentService
         ));
     }
 
+    //metodo para obtener los turnos de un dia especifico
     public async Task<IEnumerable<AppointmentModel.DailyResponse>> GetByDate(DateOnly date)
     {
         var dayStart = date.ToDateTime(TimeOnly.MinValue);
         var dayEnd = date.ToDateTime(TimeOnly.MaxValue);
 
-        var appointments = await _persistence.GetFiltered<Appointment>(
-            a => a.AvailabilitySlot!.Start >= dayStart && a.AvailabilitySlot!.Start <= dayEnd,
-            nameof(Appointment.AvailabilitySlot),
-            $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}");
+        var appointments = await _persistence.GetFiltered<Appointment>(a => a.AvailabilitySlot!.Start >= dayStart && a.AvailabilitySlot!.Start <= dayEnd, nameof(Appointment.AvailabilitySlot), $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}");
 
         return (appointments ?? Enumerable.Empty<Appointment>()).Select(a => new AppointmentModel.DailyResponse(
             a.Id,
@@ -135,8 +128,8 @@ public class AppointmentService : IAppointmentService
         ));
     }
 
-    public async Task<Pagination<AppointmentModel.SearchResponse>> Search(
-    Guid? specialtyId, Guid? doctorId, long? dni, DateOnly? date, int pageSize, int pageIndex)
+    //metodo de busqueda de turnos filtrado
+    public async Task<Pagination<AppointmentModel.SearchResponse>> Search(Guid? specialtyId, Guid? doctorId, long? dni, DateOnly? date, int pageSize, int pageIndex)
     {
         string? patientId = null;
         if (dni.HasValue)
@@ -150,7 +143,7 @@ public class AppointmentService : IAppointmentService
         DateTime? dayEnd = date.HasValue ? date.Value.ToDateTime(TimeOnly.MaxValue) : null;
 
         var result = await _persistence.Paginate<Appointment, DateTime>(
-            pageSize, pageIndex,
+            pageSize, pageIndex, 
             a =>
                 (!specialtyId.HasValue || a.AvailabilitySlot!.Doctor!.SpecialityId == specialtyId) &&
                 (!doctorId.HasValue || a.AvailabilitySlot!.DoctorId == doctorId) &&
