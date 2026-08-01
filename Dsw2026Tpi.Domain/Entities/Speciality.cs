@@ -18,12 +18,10 @@ public class Speciality: EntityBase
         Description = description;
         Deleted = false;
     }
-
     public void MarkAsDeleted()
     {
         this.Deleted = true;
     }
-
     public void UpdateDetails(string name, string description)
     {
         Name = name;
