@@ -36,10 +36,7 @@ public class AppointmentController : AppController
         Invalidez(validation);
 
         if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
-        {
-            throw new ValidationException()
-                .WithDetail("date", "formato inválido, se requiere YYYY-MM-DD");
-        }
+            throw new ValidationException().WithDetail("date", "formato inválido, se requiere YYYY-MM-DD");
 
         var appointments = await _service.GetByDate(parsedDate);
         return Ok(appointments);

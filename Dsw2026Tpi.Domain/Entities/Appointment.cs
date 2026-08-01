@@ -4,12 +4,9 @@ public class Appointment : EntityBase
 {
     public Guid AvailabilitySlotId { get; private set; }
     public AvailabilitySlot? AvailabilitySlot { get; private set; }
-
     public string PatientUserId { get; private set; }
-
     public string Reason { get; private set; }
     public AppointmentStatus Status { get; private set; }
-
     public DateTime? CancelledAt { get; private set; }
     public DateTime? AttendedAt { get; private set; }
 
