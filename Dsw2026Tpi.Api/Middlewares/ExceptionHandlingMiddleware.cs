@@ -32,18 +32,16 @@ public class ExceptionHandlingMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
-        ErrorResponse error = ex is AppException exApp ? 
-            exApp.Error : 
-            new ErrorResponse(nameof(ErrorCodes.UNHANDLED_ERROR), ErrorCodes.UNHANDLED_ERROR);
+        ErrorResponse error = ex is AppException exApp ? exApp.Error : new ErrorResponse(nameof(ErrorCodes.UNHANDLED_ERROR), ErrorCodes.UNHANDLED_ERROR);
         var status = ex switch
         {
-            ValidationException => HttpStatusCode.BadRequest,
-            EntityNotFoundException => HttpStatusCode.NotFound,
-            BusinessRuleException => HttpStatusCode.Conflict,
-            ConflictException => HttpStatusCode.Conflict,
-            AuthenticationException => HttpStatusCode.Unauthorized,
-            AuthorizationException => HttpStatusCode.Unauthorized,
-            _ => HttpStatusCode.InternalServerError,
+            ValidationException => HttpStatusCode.BadRequest, //400
+            EntityNotFoundException => HttpStatusCode.NotFound, //404
+            BusinessRuleException => HttpStatusCode.Conflict, //409
+            ConflictException => HttpStatusCode.Conflict, //409
+            AuthenticationException => HttpStatusCode.Unauthorized, //401
+            AuthorizationException => HttpStatusCode.Unauthorized, //401
+            _ => HttpStatusCode.InternalServerError, //500 para lo demas
         };
         var result = JsonSerializer.Serialize(error);
         context.Response.ContentType = "application/json";

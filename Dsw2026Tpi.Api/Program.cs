@@ -15,8 +15,8 @@ public class Program
     {
         // Inicializar con un logger simple antes de construir el host
         Log.Logger = new LoggerConfiguration()
-            .WriteTo.Console()
-            .CreateBootstrapLogger();
+           .WriteTo.Console()
+           .CreateBootstrapLogger();
 
         try
         {
@@ -37,15 +37,9 @@ public class Program
 
             var app = builder.Build();
 
-            using (var scope = app.Services.CreateScope())
-            {
-                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-                foreach (var role in new[] { Roles.Administrator, Roles.Patient })
-                {
-                    if (!await roleManager.RoleExistsAsync(role))
-                        await roleManager.CreateAsync(new IdentityRole(role));
-                }
-            }
+            //Crea los roles en la base de datos si no existen
+            await app.SeedRolesAsync();
+          
             using (var scope = app.Services.CreateScope())
             {
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -90,13 +84,13 @@ public class Program
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+                //Aqui deberia agregarse la cuenta admin una sola vez o en el metodo RoleSeeding?
             }
 
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseCors();
             app.UseMiddleware<ExceptionHandlingMiddleware>();
-
             app.MapControllers();
             app.MapHealthChecks("/health-check");
 

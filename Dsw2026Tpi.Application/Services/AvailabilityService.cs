@@ -25,21 +25,23 @@ public class AvailabilityService : IAvailabilityService
         "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"
     };
 
+    //metodo para normalizar el nombre del dia
     private static string NormalizeDayName(string day)
     {
         if (string.IsNullOrWhiteSpace(day))
             throw new ValidationException().WithDetail("days", "día inválido");
 
-        var normalized = day.Trim().ToUpperInvariant()
+        var normalized = day.Trim()
+            .ToUpperInvariant()
             .Replace("É", "E").Replace("Á", "A");
 
         if (!ValidDayNames.Contains(normalized))
-            throw new ValidationException().WithDetail("days",
-                $"día inválido: '{day}'. Debe ser LUNES, MARTES, MIERCOLES, JUEVES, VIERNES, SABADO o DOMINGO");
+            throw new ValidationException().WithDetail("days", $"día inválido: '{day}'. Debe ser LUNES, MARTES, MIERCOLES, JUEVES, VIERNES, SABADO o DOMINGO");
 
         return normalized;
     }
 
+    //metodo para obtener el nombre del dia
     private static string GetDayName(DayOfWeek dow) => dow switch
     {
         DayOfWeek.Monday => "LUNES",
@@ -52,9 +54,9 @@ public class AvailabilityService : IAvailabilityService
         _ => throw new ArgumentOutOfRangeException(nameof(dow))
     };
 
+    //metodo para generar los slots de disponibilidad a partir de una regla
     private async Task GenerateSlotsForRule(AvailabilityRule rule, DateTime fromDate, DateTime toDate)
     {
-        // Convertir CSV de feriados a conjunto de DateOnly
         var excluded = new HashSet<DateOnly>();
         if (!string.IsNullOrWhiteSpace(rule.ExcludedDatesCsv))
         {
@@ -87,7 +89,6 @@ public class AvailabilityService : IAvailabilityService
                 continue;
             }
 
-            // generar slots entre StartTime y EndTime
             var startTime = rule.StartTime;
             var endTime = rule.EndTime;
 
@@ -97,8 +98,6 @@ public class AvailabilityService : IAvailabilityService
             while (slotStart.Add(slotDuration) <= current.Add(endTime))
             {
                 var slotEnd = slotStart.Add(slotDuration);
-
-                // crear slot en UTC (se asume que slotStart ya está en UTC)
                 var slot = new AvailabilitySlot
                 {
                     Id = Guid.NewGuid(),
@@ -119,26 +118,24 @@ public class AvailabilityService : IAvailabilityService
             current = current.AddDays(1);
         }
 
-        // Persistir slots en batch
         foreach (var s in slotsToAdd)
         {
             await _persistence.Add(s);
         }
     }
 
+    //metodo para crear intervalos de disponibilidad para un doctor
     public async Task<List<AvailabilityModel.Response>> Create(AvailabilityModel.Request request)
     {
-        if (!Guid.TryParse(request.DoctorId, out var doctorId))
-            throw new ValidationException().WithDetail("doctorId", "formato inválido, se requiere Guid");
-
+        var doctorId = Guid.Parse(request.DoctorId);
         var doctor = await _persistence.GetById<Doctor>(doctorId);
+
         if (doctor is null || doctor.Deleted || !doctor.IsActive)
             throw new EntityNotFoundException("Doctor");
 
         if (request.Days == null || !request.Days.Any())
             throw new ValidationException().WithDetail("days", "se requiere al menos un dia con horario");
 
-        // Parsear cada día individualmente, sin perder su horario propio
         var parsed = new List<(string Day, TimeSpan Start, TimeSpan End)>();
 
         foreach (var d in request.Days)
@@ -154,7 +151,6 @@ public class AvailabilityService : IAvailabilityService
             parsed.Add((dayName, start, end));
         }
 
-        // Verificar solapamientos con reglas existentes del mismo doctor, por cada día parseado
         var existing = await _persistence.GetFiltered<AvailabilityRule>(r => r.DoctorId == doctorId);
         foreach (var (day, start, end) in parsed)
         {
@@ -172,7 +168,6 @@ public class AvailabilityService : IAvailabilityService
             }
         }
 
-        // Agrupar los días que comparten el mismo horario → una regla por grupo
         var groups = parsed.GroupBy(p => (p.Start, p.End));
         var createdRules = new List<AvailabilityRule>();
 
@@ -218,19 +213,18 @@ public class AvailabilityService : IAvailabilityService
         }).ToList();
     }
 
+    //metodo para actualizar intervalos de disponibilidad para un doctor
     public async Task<List<AvailabilityModel.Response>> Update(AvailabilityModel.Request request)
     {
-        if (!Guid.TryParse(request.DoctorId, out var doctorId))
-            throw new ValidationException().WithDetail("doctorId", "formato inválido, se requiere Guid");
-
+        var doctorId = Guid.Parse(request.DoctorId);
         var doctor = await _persistence.GetById<Doctor>(doctorId);
+
         if (doctor is null || doctor.Deleted || !doctor.IsActive)
             throw new EntityNotFoundException("Doctor");
 
         if (request.Days == null || !request.Days.Any())
             throw new ValidationException().WithDetail("days", "se requiere al menos un dia con horario");
 
-        // Parsear cada día individualmente, sin perder su horario propio
         var parsed = new List<(string Day, TimeSpan Start, TimeSpan End)>();
 
         foreach (var d in request.Days)
@@ -249,21 +243,15 @@ public class AvailabilityService : IAvailabilityService
             parsed.Add((dayName, start, end));
         }
 
-        // Rango del mes actual (se usa tanto para el chequeo como para el borrado/regeneración)
         var monthStartDate = DateTime.UtcNow.Date;
-        var monthEndDate = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month,
-            DateTime.DaysInMonth(DateTime.UtcNow.Year, DateTime.UtcNow.Month));
+        var monthEndDate = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.DaysInMonth(DateTime.UtcNow.Year, DateTime.UtcNow.Month));
 
-        // Antes de borrar nada: si hay turnos ya reservados este mes para este médico, frenamos.
         var slotsInMonth = await _persistence.GetFiltered<AvailabilitySlot>(
             s => s.DoctorId == doctorId && s.Start >= monthStartDate && s.Start <= monthEndDate);
 
         if (slotsInMonth != null && slotsInMonth.Any(s => s.Status == SlotStatus.Booked))
-            throw new BusinessRuleException(
-                "No se puede actualizar la disponibilidad: existen turnos reservados en el mes actual.",
-                "AVAILABILITY_HAS_BOOKED_SLOTS");
+            throw new BusinessRuleException("No se puede actualizar la disponibilidad: existen turnos reservados en el mes actual.", "AVAILABILITY_HAS_BOOKED_SLOTS");
 
-        // Eliminar reglas existentes del médico que sean efectivas en el mes actual (aproximación simple)
         var now = DateTime.UtcNow;
         var monthStart = new DateTime(now.Year, now.Month, 1);
         var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
@@ -275,13 +263,10 @@ public class AvailabilityService : IAvailabilityService
         {
             foreach (var er in existingRules)
             {
-                // No hay borrado lógico en AvailabilityRule, por eso las eliminamos físicamente
                 await _persistence.Delete(er);
             }
         }
 
-        // Eliminar slots existentes del doctor dentro del rango del mes
-        // (ya sabemos que ninguno está Booked, por el chequeo de arriba)
         if (slotsInMonth != null)
         {
             foreach (var es in slotsInMonth)
@@ -290,7 +275,6 @@ public class AvailabilityService : IAvailabilityService
             }
         }
 
-        // Agrupar los días que comparten el mismo horario → una regla por grupo
         var groups = parsed.GroupBy(p => (p.Start, p.End));
         var createdRules = new List<AvailabilityRule>();
 

@@ -23,29 +23,22 @@ public class DoctorController : AppController
         _getAllValidator = getAllValidator;
     }
 
+    //Metodo para obtener todos los doctores
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll(
-        [FromQuery] int pageSize,
-        [FromQuery] int pageIndex,
-        [FromQuery] string? name = null)
+    public async Task<IActionResult> GetAll([FromQuery] int pageSize, [FromQuery] int pageIndex, [FromQuery] string? name = null)
     {
         var query = new DoctorModel.GetAllQuery(pageSize, pageIndex, name);
         var validation = await _getAllValidator.ValidateAsync(query);
         Invalidez(validation);
 
-        var doctors = await _service.GetAll(
-            pageSize,
-            pageIndex,
-            name);
-
+        var doctors = await _service.GetAll(pageSize, pageIndex, name);
         return Ok(doctors);
     }
 
+    //Metodo para obtener disponibilidades de un doctor por su id
     [HttpGet("{id:guid}/availabilities")]
-    [ProducesResponseType(
-    typeof(IEnumerable<DoctorModel.AvailabilityResponse>),
-    StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IEnumerable<DoctorModel.AvailabilityResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAvailabilities(Guid id)
     {
@@ -53,14 +46,11 @@ public class DoctorController : AppController
         return Ok(availabilities);
     }
 
+    //Metodo para crear un doctor
     [HttpPost]
-    [ProducesResponseType(
-        typeof(DoctorModel.Response),
-        StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Create(
-        [FromBody] DoctorModel.Request request)
+    public async Task<IActionResult> Create([FromBody] DoctorModel.Request request)
     {
         var validation = await _requestValidator.ValidateAsync(request);
         Invalidez(validation);
@@ -69,15 +59,12 @@ public class DoctorController : AppController
         return Created($"/api/doctors/{doctor.Id}", doctor);
     }
 
+    //Metodo para actualizar un doctor por su id
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(
-        typeof(DoctorModel.Response),
-        StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(DoctorModel.Response), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(
-        Guid id,
-        [FromBody] DoctorModel.Request request)
+    public async Task<IActionResult> Update(Guid id, [FromBody] DoctorModel.Request request)
     {
         var validation = await _requestValidator.ValidateAsync(request);
         Invalidez(validation);
@@ -85,6 +72,8 @@ public class DoctorController : AppController
         var doctor = await _service.Update(id, request);
         return Ok(doctor);
     }
+
+    //Metodo para eliminar un doctor por su id (logicamente)
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

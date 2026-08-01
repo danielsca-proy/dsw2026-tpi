@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
-[Route("auth")]
+[Route("api/auth")]
 public class AuthenticationController : AppController
 {
     private readonly IAuthenticationService _authenticationService;
@@ -22,6 +22,7 @@ public class AuthenticationController : AppController
         _registerValidator = registerValidator;
     }
 
+    //Metodo para registrar un adminstrador
     [HttpPost("admin/register")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -34,6 +35,7 @@ public class AuthenticationController : AppController
         return Ok(result.Email); 
     }
 
+    //Metodo para loguear un administrador
     [HttpPost("admin/login")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -45,7 +47,8 @@ public class AuthenticationController : AppController
         var result = await _authenticationService.LoginAdmin(request);
         return Ok(result);
     }
-    
+
+    //Metodo para loguear una paciente, aqui si no existe se crea uno
     [HttpPost("patient/login")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -62,7 +65,6 @@ public class AuthenticationController : AppController
     private static void Invalidez(FluentValidation.Results.ValidationResult validation)
     {
         if (validation.IsValid) return;
-
         var ex = new ValidationException();
         foreach (var error in validation.Errors)
             ex.WithDetail(error.PropertyName, error.ErrorMessage);

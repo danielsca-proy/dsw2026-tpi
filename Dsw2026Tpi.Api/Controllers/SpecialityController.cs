@@ -28,7 +28,6 @@ public class SpecialityController : AppController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll([FromQuery] int pageSize, [FromQuery] int pageIndex, [FromQuery] string? name = null)
     {
-        
         var query = new SpecialityModel.GetAllQuery(pageSize, pageIndex, name);
         var validation = await _getAllValidator.ValidateAsync(query);
         Invalidez(validation);
@@ -79,7 +78,6 @@ public class SpecialityController : AppController
     private static void Invalidez(FluentValidation.Results.ValidationResult validation)
     {
         if (validation.IsValid) return;
-
         var ex = new ValidationException();
         foreach (var error in validation.Errors)
             ex.WithDetail(error.PropertyName, error.ErrorMessage);

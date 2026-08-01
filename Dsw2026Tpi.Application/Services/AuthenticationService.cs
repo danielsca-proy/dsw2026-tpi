@@ -17,11 +17,7 @@ public class AuthenticationService : IAuthenticationService
     private readonly JwtService _jwtService;
     private readonly ILogger<AuthenticationService> _logger;
 
-    public AuthenticationService(UserManager<ApplicationUser> userManager,
-        ISignInService signInManager,
-        RoleManager<IdentityRole> roleManager,
-        JwtService jwtService,
-        ILogger<AuthenticationService> logger)
+    public AuthenticationService(UserManager<ApplicationUser> userManager, ISignInService signInManager, RoleManager<IdentityRole> roleManager, JwtService jwtService, ILogger<AuthenticationService> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -31,6 +27,7 @@ public class AuthenticationService : IAuthenticationService
 
     }
 
+    //metodo para loguear un administrador
     public async Task<LoginAdminModel.Response> LoginAdmin(LoginAdminModel.Request request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email) ?? throw new AuthenticationException();
@@ -45,26 +42,18 @@ public class AuthenticationService : IAuthenticationService
         var role = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
         var token  = _jwtService.GenerateToken(user.UserName!, role);
 
-        return new LoginAdminModel.Response(
-            token,
-            role
-        );
+        return new LoginAdminModel.Response(token, role);
     }
 
+    //metodo para loguear un paciente, si no existe lo crea y le asigna el rol de paciente
     public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
 
+        //aqui hace lo que dije arriba 
         if (user is null)
         {
-            user = new ApplicationUser
-            {
-                UserName = request.Email,
-                Email = request.Email,
-                Dni = request.Dni,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            user = new ApplicationUser{UserName = request.Email, Email = request.Email, Dni = request.Dni, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow};
 
             var createResult = await _userManager.CreateAsync(user);
             if (!createResult.Succeeded)
@@ -83,6 +72,7 @@ public class AuthenticationService : IAuthenticationService
         return new LoginPatientModel.Response(token, role);
     }
 
+    //metodo para registrar un usuario administrador
     public async Task<RegisterModel.Response> Register(RegisterModel.Request request)
     {
         var user = new ApplicationUser
@@ -95,8 +85,8 @@ public class AuthenticationService : IAuthenticationService
 
         var result = await _userManager.CreateAsync(user, request.Password);
 
-        if (!result.Succeeded) throw new ConflictException(nameof(ErrorCodes.REGISTER_USER_CONFLICT),
-            ErrorCodes.REGISTER_USER_CONFLICT)
+        if (!result.Succeeded) 
+            throw new ConflictException(nameof(ErrorCodes.REGISTER_USER_CONFLICT), ErrorCodes.REGISTER_USER_CONFLICT)
                 .WithDetail(result.Errors.Select(e => (e.Code, e.Description)));
        
         _ = await _userManager.AddToRoleAsync(user, Roles.Administrator);

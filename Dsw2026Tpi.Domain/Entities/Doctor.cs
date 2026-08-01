@@ -36,10 +36,7 @@ public class Doctor: EntityBase
     {
         this.Deleted = true;
     }
-    public void UpdateDetails(
-    string name,
-    string licenseNumber,
-    Speciality speciality)
+    public void UpdateDetails(string name, string licenseNumber, Speciality speciality)
     {
         Name = name;
         LicenseNumber = licenseNumber;
