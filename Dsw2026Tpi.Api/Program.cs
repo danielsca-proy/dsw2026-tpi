@@ -1,8 +1,11 @@
 using Dsw2026Tpi.Api.Configurations;
 using Dsw2026Tpi.Api.Middlewares;
 using Dsw2026Tpi.CrossCutting.Identity;
+using Dsw2026Tpi.Data.Identity;
 using Microsoft.AspNetCore.Identity;
 using Serilog;
+using System.Linq;
+
 
 namespace Dsw2026Tpi.Api;
 
@@ -36,6 +39,40 @@ public class Program
 
             //Crea los roles en la base de datos si no existen
             await app.SeedRolesAsync();
+          
+            using (var scope = app.Services.CreateScope())
+            {
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+                const string email = "admin@utn.com";
+                const string password = "Admin123!";
+                const long dni = 99999999;
+
+                var admin = await userManager.FindByEmailAsync(email);
+
+                if (admin == null)
+                {
+                    admin = new ApplicationUser
+                    {
+                        UserName = email,
+                        Email = email,
+                        EmailConfirmed = true,
+                        Dni = dni,
+                        Deleted = false,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    var result = await userManager.CreateAsync(admin, password);
+
+                    if (!result.Succeeded)
+                    {
+                        throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
+                    }
+
+                    await userManager.AddToRoleAsync(admin, Roles.Administrator);
+                }
+            }
 
             app.UseSerilogRequestLogging();
 
