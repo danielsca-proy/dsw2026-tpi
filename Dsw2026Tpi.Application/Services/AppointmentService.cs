@@ -23,9 +23,6 @@ public class AppointmentService : IAppointmentService
 
     public async Task<AppointmentModel.CreateResponse> Create(AppointmentModel.CreateRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length < 5)
-            throw new ValidationException().WithDetail("reason", "obligatorio, mínimo 5 caracteres");
-
         var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
         if (doctor is null || doctor.Deleted)
             throw new EntityNotFoundException("Doctor");

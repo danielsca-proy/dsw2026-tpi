@@ -34,7 +34,6 @@ public class DoctorService : IDoctorService
     public async Task<DoctorModel.Response> Create(
         DoctorModel.Request request)
     {
-        ValidateRequest(request);
 
         var speciality =
             await _persistence.GetById<Speciality>(request.SpecialityId);
@@ -56,7 +55,6 @@ public class DoctorService : IDoctorService
         Guid id,
         DoctorModel.Request request)
     {
-        ValidateRequest(request);
 
         var doctor = await _persistence.GetById<Doctor>(id);
 
@@ -134,37 +132,6 @@ public class DoctorService : IDoctorService
         doctor.Eliminar();
 
         await _persistence.Update(doctor);
-    }
-
-    private static void ValidateRequest(DoctorModel.Request request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
-            throw new ValidationException()
-                .WithDetail("name", "es obligatorio");
-
-        if (request.Name.Length is < 3 or > 100)
-            throw new ValidationException()
-                .WithDetail(
-                    "name",
-                    "debe tener entre 3 y 100 caracteres");
-
-        if (string.IsNullOrWhiteSpace(request.LicenseNumber))
-            throw new ValidationException()
-                .WithDetail(
-                    "licenseNumber",
-                    "es obligatorio");
-
-        if (request.LicenseNumber.Length > 50)
-            throw new ValidationException()
-                .WithDetail(
-                    "licenseNumber",
-                    "no puede superar los 50 caracteres");
-
-        if (request.SpecialityId == Guid.Empty)
-            throw new ValidationException()
-                .WithDetail(
-                    "specialityId",
-                    "es obligatorio");
     }
 
     private static string GetDayName(DayOfWeek day)

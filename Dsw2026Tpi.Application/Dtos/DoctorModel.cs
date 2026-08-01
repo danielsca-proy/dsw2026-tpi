@@ -9,4 +9,6 @@ public record DoctorModel
     string Day,
     string StartTime,
     string EndTime);
+
+    public record GetAllQuery(int PageSize, int PageIndex, string? Name);
 }

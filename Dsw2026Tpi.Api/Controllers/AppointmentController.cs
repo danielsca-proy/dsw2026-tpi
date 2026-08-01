@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 using Dsw2026Tpi.Application.Dtos;
+using FluentValidation;
+using ValidationException = Dsw2026Tpi.CrossCutting.Exceptions.ValidationException;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
@@ -11,10 +13,16 @@ namespace Dsw2026Tpi.Api.Controllers;
 public class AppointmentController : AppController
 {
     private readonly IAppointmentService _service;
+    private readonly IValidator<AppointmentModel.CreateRequest> _createValidator;
+    private readonly IValidator<AppointmentModel.GetByDateQuery> _getByDateValidator;
+    private readonly IValidator<AppointmentModel.SearchQuery> _searchValidator;
 
-    public AppointmentController(IAppointmentService service)
+    public AppointmentController(IAppointmentService service, IValidator<AppointmentModel.CreateRequest> createValidator, IValidator<AppointmentModel.GetByDateQuery> getByDateValidator, IValidator<AppointmentModel.SearchQuery> searchValidator)
     {
         _service = service;
+        _createValidator = createValidator;
+        _getByDateValidator = getByDateValidator;
+        _searchValidator = searchValidator;
     }
 
     [HttpGet]
@@ -23,7 +31,11 @@ public class AppointmentController : AppController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetByDate([FromQuery] string date)
     {
-       if (!DateOnly.TryParseExact(
+        var query = new AppointmentModel.GetByDateQuery(date);
+        var validation = await _getByDateValidator.ValidateAsync(query);
+        Invalidez(validation);
+
+        if (!DateOnly.TryParseExact(
         date,
         "yyyy-MM-dd",
         CultureInfo.InvariantCulture,
@@ -45,6 +57,9 @@ public class AppointmentController : AppController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Create([FromBody] AppointmentModel.CreateRequest request)
     {
+        var validation = await _createValidator.ValidateAsync(request);
+        Invalidez(validation);
+
         var appointment = await _service.Create(request);
         return Created($"/api/appointments/{appointment.Id}", appointment);
     }
@@ -55,6 +70,10 @@ public class AppointmentController : AppController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Search([FromQuery] Guid? specialtyId, [FromQuery] Guid? doctorId, [FromQuery] long? dni, [FromQuery] string? date, [FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 0)
     {
+        var query = new AppointmentModel.SearchQuery(specialtyId, doctorId, dni, date, pageSize, pageIndex);
+        var validation = await _searchValidator.ValidateAsync(query);
+        Invalidez(validation);
+
         DateOnly? parsedDate = null;
         if (!string.IsNullOrWhiteSpace(date))
         {
@@ -62,11 +81,6 @@ public class AppointmentController : AppController
                 throw new ValidationException().WithDetail("date", "formato inválido, se requiere YYYY-MM-DD");
             parsedDate = d;
         }
-
-        if (pageSize <= 0)
-            throw new ValidationException().WithDetail("pageSize", "debe ser mayor a 0");
-        if (pageIndex < 0)
-            throw new ValidationException().WithDetail("pageIndex", "no puede ser negativo");
 
         var result = await _service.Search(specialtyId, doctorId, dni, parsedDate, pageSize, pageIndex);
         return Ok(result);
@@ -90,5 +104,15 @@ public class AppointmentController : AppController
     {
         var appointments = await _service.GetByPatient(dni);
         return Ok(appointments);
+    }
+
+    //Mismo metodo para codigo
+    private static void Invalidez(FluentValidation.Results.ValidationResult validation)
+    {
+        if (validation.IsValid) return;
+        var ex = new ValidationException();
+        foreach (var error in validation.Errors)
+            ex.WithDetail(error.PropertyName, error.ErrorMessage);
+        throw ex;
     }
 }
