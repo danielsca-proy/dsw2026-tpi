@@ -2,7 +2,6 @@
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.CrossCutting.Identity;
-using Dsw2026Tpi.CrossCutting.Resources;
 using Dsw2026Tpi.Data.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -27,7 +26,6 @@ public class AuthenticationService : IAuthenticationService
 
     }
 
-    //metodo para loguear un administrador
     public async Task<LoginAdminModel.Response> LoginAdmin(LoginAdminModel.Request request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email) ?? throw new AuthenticationException();
@@ -45,12 +43,12 @@ public class AuthenticationService : IAuthenticationService
         return new LoginAdminModel.Response(token, role);
     }
 
-    //metodo para loguear un paciente, si no existe lo crea y le asigna el rol de paciente
+    
     public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
 
-        //aqui hace lo que dije arriba 
+        //si no existe lo crea y le asigna el rol de paciente
         if (user is null)
         {
             user = new ApplicationUser{UserName = request.Email, Email = request.Email, Dni = request.Dni, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow};
@@ -70,29 +68,5 @@ public class AuthenticationService : IAuthenticationService
         var token = _jwtService.GenerateToken(user.UserName!, role);
 
         return new LoginPatientModel.Response(token, role);
-    }
-
-    //metodo para registrar un usuario administrador
-    public async Task<RegisterModel.Response> Register(RegisterModel.Request request)
-    {
-        var user = new ApplicationUser
-        {
-            UserName = request.Email,
-            Email = request.Email,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        var result = await _userManager.CreateAsync(user, request.Password);
-
-        if (!result.Succeeded) 
-            throw new ConflictException(nameof(ErrorCodes.REGISTER_USER_CONFLICT), ErrorCodes.REGISTER_USER_CONFLICT)
-                .WithDetail(result.Errors.Select(e => (e.Code, e.Description)));
-       
-        _ = await _userManager.AddToRoleAsync(user, Roles.Administrator);
-
-        _logger.LogInformation("Usuario registrado: {Email}", request.Email);
-
-        return new RegisterModel.Response(request.Email);
     }
 }

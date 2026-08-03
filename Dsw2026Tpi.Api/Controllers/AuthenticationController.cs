@@ -14,30 +14,14 @@ public class AuthenticationController : AppController
     private readonly IAuthenticationService _authenticationService;
     private readonly IValidator<LoginAdminModel.Request> _loginAdminValidator;
     private readonly IValidator<LoginPatientModel.Request> _loginPatientValidator;
-    private readonly IValidator<RegisterModel.Request> _registerValidator;
 
-    public AuthenticationController(IAuthenticationService authenticationService, IValidator<LoginAdminModel.Request> loginAdminValidator, IValidator<LoginPatientModel.Request> loginPatientValidator, IValidator<RegisterModel.Request> registerValidator) 
+    public AuthenticationController(IAuthenticationService authenticationService, IValidator<LoginAdminModel.Request> loginAdminValidator, IValidator<LoginPatientModel.Request> loginPatientValidator) 
     {
         _authenticationService = authenticationService;
         _loginAdminValidator = loginAdminValidator;
         _loginPatientValidator = loginPatientValidator;
-        _registerValidator = registerValidator;
     }
 
-    //Metodo para registrar un adminstrador
-    [HttpPost("admin/register")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Register([FromBody] RegisterModel.Request request)
-    {
-        var validation = await _registerValidator.ValidateAsync(request);
-        Invalidez(validation);
-
-        var result = await _authenticationService.Register(request);
-        return Ok(result.Email); 
-    }
-
-    //Metodo para loguear un administrador
     [HttpPost("admin/login")]
     [EnableRateLimiting(RateLimitPolicies.AdminLogin)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -52,7 +36,6 @@ public class AuthenticationController : AppController
         return Ok(result);
     }
 
-    //Metodo para loguear una paciente, aqui si no existe se crea uno
     [HttpPost("patient/login")]
     [EnableRateLimiting(RateLimitPolicies.PatientLogin)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -67,7 +50,6 @@ public class AuthenticationController : AppController
         return Ok(result);
     }
 
-    //Mismo codigo para ahorrar codigo
     private static void Invalidez(FluentValidation.Results.ValidationResult validation)
     {
         if (validation.IsValid) return;
