@@ -43,30 +43,49 @@ public class AuthenticationService : IAuthenticationService
         return new LoginAdminModel.Response(token, role);
     }
 
-    
-    public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
+
+    public async Task<LoginPatientModel.Response> LoginPatient(
+    LoginPatientModel.Request request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
 
-        //si no existe lo crea y le asigna el rol de paciente
+        // Si no existe, se registra automáticamente como paciente.
         if (user is null)
         {
-            user = new ApplicationUser{UserName = request.Email, Email = request.Email, Dni = request.Dni, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow};
+            user = new ApplicationUser
+            {
+                UserName = request.Email,
+                Email = request.Email,
+                Dni = request.Dni,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
             var createResult = await _userManager.CreateAsync(user);
+
             if (!createResult.Succeeded)
+            {
                 throw new AuthenticationException();
+            }
 
             await _userManager.AddToRoleAsync(user, Roles.Patient);
         }
-        else if (user.Dni != request.Dni)
+        else
         {
+            if (user.Dni != request.Dni)
+                throw new AuthenticationException();
+        }
+
+        var isPatient = await _userManager.IsInRoleAsync(user, Roles.Patient);
+
+        if (!isPatient)
+        {
+            _logger.LogWarning("Intento de login de paciente con un usuario que no posee el rol Paciente: {Email}", request.Email);
             throw new AuthenticationException();
         }
 
-        var role = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
-        var token = _jwtService.GenerateToken(user.UserName!, role);
+        var token = _jwtService.GenerateToken(user.UserName!, Roles.Patient);
 
-        return new LoginPatientModel.Response(token, role);
+        return new LoginPatientModel.Response(token, Roles.Patient);
     }
 }
