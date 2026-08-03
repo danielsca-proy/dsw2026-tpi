@@ -92,7 +92,7 @@ public class DoctorService : IDoctorService
         if (doctor is null || doctor.Deleted)
             throw new EntityNotFoundException(DoctorNotFound);
 
-        doctor.Eliminar();
+        doctor.MarkAsDeleted();
         await _persistence.Update(doctor);
     }
 

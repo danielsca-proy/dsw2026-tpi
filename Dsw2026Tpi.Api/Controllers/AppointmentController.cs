@@ -6,6 +6,8 @@ using System.Globalization;
 using Dsw2026Tpi.Application.Dtos;
 using FluentValidation;
 using ValidationException = Dsw2026Tpi.CrossCutting.Exceptions.ValidationException;
+using Dsw2026Tpi.Api.Configurations;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dsw2026Tpi.Api.Controllers;
 
@@ -77,10 +79,12 @@ public class AppointmentController : AppController
 
     //Metodo para crear una citaa
     [HttpPost]
+    [EnableRateLimiting(RateLimitPolicies.AppointmentCreate)]
     [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
     [ProducesResponseType(typeof(AppointmentModel.CreateResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Create([FromBody] AppointmentModel.CreateRequest request)
     {
         var validation = await _createValidator.ValidateAsync(request);

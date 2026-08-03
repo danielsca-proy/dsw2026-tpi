@@ -32,7 +32,7 @@ public class Doctor: EntityBase
         IsActive = false;
     }
 
-    public void Eliminar()
+    public void MarkAsDeleted()
     {
         this.Deleted = true;
     }

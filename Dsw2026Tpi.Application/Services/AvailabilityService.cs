@@ -41,6 +41,34 @@ public class AvailabilityService : IAvailabilityService
         return normalized;
     }
 
+    private static void ValidateNoOverlapsWithinRequest(IReadOnlyCollection<(string Day, TimeSpan Start, TimeSpan End)> schedules)
+    {
+        var schedulesByDay = schedules.GroupBy(schedule => schedule.Day);
+
+        foreach (var dayGroup in schedulesByDay)
+        {
+            var orderedSchedules = dayGroup
+                .OrderBy(schedule => schedule.Start)
+                .ThenBy(schedule => schedule.End)
+                .ToList();
+
+            for (var i = 1; i < orderedSchedules.Count; i++)
+            {
+                var previous = orderedSchedules[i - 1];
+                var current = orderedSchedules[i];
+
+                if (current.Start < previous.End)
+                {
+                    var previousRange = $"{previous.Start:hh\\:mm}-{previous.End:hh\\:mm}";
+
+                    var currentRange = $"{current.Start:hh\\:mm}-{current.End:hh\\:mm}";
+
+                    throw new ValidationException().WithDetail("days", $"Los horarios del día {dayGroup.Key} se solapan: " + $"{previousRange} y {currentRange}");
+                }
+            }
+        }
+    }
+
     //metodo para obtener el nombre del dia
     private static string GetDayName(DayOfWeek dow) => dow switch
     {
@@ -141,15 +169,20 @@ public class AvailabilityService : IAvailabilityService
         foreach (var d in request.Days)
         {
             var dayName = NormalizeDayName(d.Day);
+            if (!TimeSpan.TryParseExact(d.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
+                throw new ValidationException().WithDetail($"days[{d.Day}].startTime", "Formato de hora inválido. Debe ser HH:mm");
 
-            TimeSpan.TryParseExact(d.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start);
-            TimeSpan.TryParseExact(d.EndTime, @"hh\:mm", CultureInfo.InvariantCulture, out var end);
+
+            if (!TimeSpan.TryParseExact(d.EndTime, @"hh\:mm", CultureInfo.InvariantCulture, out var end))
+                throw new ValidationException().WithDetail($"days[{d.Day}].endTime", "Formato de hora inválido. Debe ser HH:mm");
 
             if (start >= end)
                 throw new ValidationException().WithDetail($"days[{d.Day}]", "La hora de inicio debe ser antes de la hora de finalización");
 
             parsed.Add((dayName, start, end));
         }
+
+        ValidateNoOverlapsWithinRequest(parsed);
 
         var existing = await _persistence.GetFiltered<AvailabilityRule>(r => r.DoctorId == doctorId);
         foreach (var (day, start, end) in parsed)
@@ -242,6 +275,8 @@ public class AvailabilityService : IAvailabilityService
 
             parsed.Add((dayName, start, end));
         }
+
+        ValidateNoOverlapsWithinRequest(parsed);
 
         var monthStartDate = DateTime.UtcNow.Date;
         var monthEndDate = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.DaysInMonth(DateTime.UtcNow.Year, DateTime.UtcNow.Month));

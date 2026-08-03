@@ -24,6 +24,7 @@ public class Program
             builder.Services.AddSwaggerConfiguration();
             builder.Services.AddApplicationPersistence(builder.Configuration);
             builder.Services.AddAppCors(builder.Configuration);
+            builder.Services.AddAppRateLimiting(builder.Configuration);
             builder.Services.AddAppDependencies();
             builder.Services.AddControllers();
             builder.Services.AddHealthChecks();
@@ -33,6 +34,7 @@ public class Program
             // Inicializa Identity (roles + administrador)
             await app.SeedIdentityAsync();
 
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
             app.UseSerilogRequestLogging();
 
             if (app.Environment.IsProduction())
@@ -46,13 +48,13 @@ public class Program
                 app.UseSwaggerUI();
             }
 
-            app.UseAuthentication();
-            app.UseAuthorization();
             app.UseCors();
-            app.UseMiddleware<ExceptionHandlingMiddleware>();
+            app.UseAuthentication();
+            app.UseRateLimiter();
+            app.UseAuthorization();
 
             app.MapControllers();
-            app.MapHealthChecks("/health-check");
+            app.MapHealthChecks("/health-check").RequireRateLimiting(RateLimitPolicies.General);
 
             Log.Information("Aplicación iniciada correctamente");
 
