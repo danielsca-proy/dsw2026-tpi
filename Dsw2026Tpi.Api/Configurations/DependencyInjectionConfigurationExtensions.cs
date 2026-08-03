@@ -40,7 +40,6 @@ public static class DependencyInjectionConfigurationExtensions
         //Fluent validation pero para register y login
         services.AddScoped<IValidator<LoginAdminModel.Request>, LoginAdminValidator>();
         services.AddScoped<IValidator<LoginPatientModel.Request>, LoginPatientValidator>();
-        services.AddScoped<IValidator<RegisterModel.Request>, RegisterValidator>();
 
         return services;
     }
