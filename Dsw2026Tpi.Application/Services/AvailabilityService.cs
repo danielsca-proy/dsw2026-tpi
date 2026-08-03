@@ -14,10 +14,12 @@ namespace Dsw2026Tpi.Application.Services;
 public class AvailabilityService : IAvailabilityService
 {
     private readonly IPersistence _persistence;
+    private readonly IHolidayProvider _holidayProvider;
 
-    public AvailabilityService(IPersistence persistence)
+    public AvailabilityService(IPersistence persistence, IHolidayProvider holidayProvider)
     {
         _persistence = persistence;
+        _holidayProvider = holidayProvider;
     }
 
     private static readonly string[] ValidDayNames =
@@ -111,7 +113,7 @@ public class AvailabilityService : IAvailabilityService
             }
 
             var dateOnly = DateOnly.FromDateTime(current);
-            if (excluded.Contains(dateOnly))
+            if (excluded.Contains(dateOnly) || _holidayProvider.IsNonWorkingDay(dateOnly))
             {
                 current = current.AddDays(1);
                 continue;

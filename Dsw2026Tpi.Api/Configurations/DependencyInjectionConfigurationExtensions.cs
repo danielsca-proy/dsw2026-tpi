@@ -4,6 +4,7 @@ using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.Application.Services;
 using Dsw2026Tpi.Application.Validators;
 using Dsw2026Tpi.Data;
+using Dsw2026Tpi.Data.Providers;
 using Dsw2026Tpi.Domain.Interfaces;
 using FluentValidation;
 
@@ -15,6 +16,7 @@ public static class DependencyInjectionConfigurationExtensions
     public static IServiceCollection AddAppDependencies(this IServiceCollection services)
     {
         services.AddScoped<IPersistence, PersistenceEf>();
+        services.AddSingleton<IHolidayProvider, HolidayProvider>();
 
         //Servicioss
         services.AddScoped<IDoctorService, DoctorService>();
