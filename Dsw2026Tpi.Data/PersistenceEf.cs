@@ -58,12 +58,12 @@ public class PersistenceEf: IPersistence
 
     public async Task<Pagination<T>> Paginate<T, TKey>(int pageSize, int pageIndex, Expression<Func<T, bool>> predicate, Expression<Func<T, TKey>> sortOrder, params string[] includes) where T : EntityBase
     {
-        pageSize = Math.Abs(pageSize);
-        pageIndex = Math.Max(0, pageIndex);
+        pageIndex = pageIndex < 0 ? 0 : pageIndex;
+        pageSize = pageSize <= 0 ? 1 : pageSize;
 
         var filtered = Include(_context.Set<T>(), includes)
-                 .Where(predicate)
-                 .OrderBy(sortOrder);
+            .Where(predicate)
+            .OrderBy(sortOrder);
 
         var total = await filtered.CountAsync();
 

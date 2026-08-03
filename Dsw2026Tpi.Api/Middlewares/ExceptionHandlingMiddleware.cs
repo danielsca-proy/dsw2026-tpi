@@ -1,4 +1,5 @@
-﻿using Dsw2026Tpi.CrossCutting.Exceptions;
+﻿using Dsw2026Tpi.Api.Configurations;
+using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.CrossCutting.Models;
 using Dsw2026Tpi.CrossCutting.Resources;
 using System.Net;
@@ -43,7 +44,7 @@ public class ExceptionHandlingMiddleware
             AuthorizationException => HttpStatusCode.Unauthorized, //401
             _ => HttpStatusCode.InternalServerError, //500 para lo demas
         };
-        var result = JsonSerializer.Serialize(error);
+        var result = JsonSerializer.Serialize(error, AppJsonOptions.Default);
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)status;
         await context.Response.WriteAsync(result);

@@ -33,6 +33,7 @@ public class Program
             // Inicializa Identity (roles + administrador)
             await app.SeedIdentityAsync();
 
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
             app.UseSerilogRequestLogging();
 
             if (app.Environment.IsProduction())
@@ -46,7 +47,6 @@ public class Program
                 app.UseSwaggerUI();
             }
 
-            app.UseMiddleware<ExceptionHandlingMiddleware>();
             app.UseCors();
             app.UseAuthentication();
             app.UseAuthorization();

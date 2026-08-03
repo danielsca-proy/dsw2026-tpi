@@ -7,7 +7,6 @@ namespace Dsw2026Tpi.Api.Configurations;
 
 public static class IdentitySeedingExtensions
 {
-    //metodo para crear los roles
     public static async Task SeedRolesAsync(this WebApplication app)
     {
         using var scope = app.Services.CreateScope();
@@ -20,14 +19,13 @@ public static class IdentitySeedingExtensions
         }
     }
 
-    //metodo para crear el usuario administrador
     public static async Task SeedAdminAsync(this WebApplication app)
     {
         using var scope = app.Services.CreateScope();
 
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        const string email = "admin@utn.com";
+        const string email = "admin@utn.com"; //Añadir seguridad a esto...
         const string password = "Admin123!";
         const long dni = 99999999;
 
