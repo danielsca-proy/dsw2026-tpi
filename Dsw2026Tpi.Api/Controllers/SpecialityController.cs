@@ -39,6 +39,7 @@ public class SpecialityController : AppController
     [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(SpecialityModel.Response),StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] SpecialityModel.Request request)
     {
         var validation = await _requestValidator.ValidateAsync(request);
@@ -53,6 +54,7 @@ public class SpecialityController : AppController
     [ProducesResponseType(typeof(SpecialityModel.Response),StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Update(Guid id, [FromBody] SpecialityModel.Request request)
     {
         var validation = await _requestValidator.ValidateAsync(request);
@@ -63,14 +65,14 @@ public class SpecialityController : AppController
     }
 
     [HttpDelete("{id:guid}")]
-[Authorize(Policy = Policies.AdminPolicy)]
-[ProducesResponseType(StatusCodes.Status200OK)]
-[ProducesResponseType(StatusCodes.Status404NotFound)]
-public async Task<IActionResult> Delete(Guid id)
-{
-    await _service.Delete(id);
-    return Ok("ok");
-}
+    [Authorize(Policy = Policies.AdminPolicy)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await _service.Delete(id);
+        return Ok("ok");
+    }
 
     //Esto para evitar repetir el bloqeu de codigo en los endpoints
     private static void Invalidez(FluentValidation.Results.ValidationResult validation)

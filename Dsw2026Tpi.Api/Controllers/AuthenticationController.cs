@@ -41,6 +41,7 @@ public class AuthenticationController : AppController
     [EnableRateLimiting(RateLimitPolicies.PatientLogin)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> LoginPatient([FromBody] LoginPatientModel.Request request)
     {
         var validation = await _loginPatientValidator.ValidateAsync(request);
