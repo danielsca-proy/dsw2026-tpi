@@ -8,7 +8,7 @@ public class AvailabilityRule : EntityBase
     public Doctor? Doctor { get; set; }
     public DateTime EffectiveFrom { get; set; }
     public DateTime? EffectiveTo { get; set; }
-    public RecurrenceType Recurrence { get; set; } = RecurrenceType.Weekly;
+    public RecurrenceType Recurrence { get; set; } = RecurrenceType.WEEKLY;
     public string? DaysOfWeekCsv { get; set; }
     public TimeSpan StartTime { get; set; }
     public TimeSpan EndTime { get; set; }

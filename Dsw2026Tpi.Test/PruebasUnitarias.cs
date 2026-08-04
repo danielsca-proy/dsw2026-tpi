@@ -30,7 +30,7 @@ public class PruebasUnitarias
         var request = new AppointmentModel.CreateRequest(
             DoctorId: Guid.NewGuid(),
             AvailabilitySlotId: Guid.NewGuid(),
-            PatientDni: 40123456,
+            Patient: new(40123456),
             Reason: "Control de rutina");
 
         _persistence.GetById<Doctor>(request.DoctorId).Returns((Doctor?)null); //aqui hace como que el doctor no existe en la bd, asi que devuelve null.
