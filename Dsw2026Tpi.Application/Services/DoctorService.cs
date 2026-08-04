@@ -20,7 +20,7 @@ public class DoctorService : IDoctorService
     //metodo para obtener todos los doctores paginado y filtrado
     public async Task<Pagination<DoctorModel.Response>> GetAll( int pageSize, int pageIndex, string? name = null)
     {
-        var doctors = await _persistence.Paginate<Doctor, string>(pageSize, pageIndex, d => !d.Deleted && (string.IsNullOrWhiteSpace(name) || d.Name.Contains(name)), d => d.Name, nameof(Doctor.Speciality));
+        var doctors = await _persistence.Paginate<Doctor, string>(pageSize, pageIndex, d => !d.Deleted && d.IsActive && (string.IsNullOrWhiteSpace(name) || d.Name.Contains(name)), d => d.Name, nameof(Doctor.Speciality));
         return doctors.Map(MapResponse);
     }
 
