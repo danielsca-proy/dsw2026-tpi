@@ -10,7 +10,7 @@ public class AvailabilityRuleConfiguration : IEntityTypeConfiguration<Availabili
     {
         builder.ToTable("AvailabilityRules");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.DaysOfWeekCsv).HasMaxLength(50);
+        builder.Property(x => x.DaysOfWeekCsv).HasMaxLength(100);
         builder.Property(x => x.ExcludedDatesCsv).HasMaxLength(500);
         builder.Property(x => x.SlotDuration).HasConversion(
             v => v.Ticks,
