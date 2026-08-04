@@ -20,14 +20,14 @@ public class DoctorService : IDoctorService
     //metodo para obtener todos los doctores paginado y filtrado
     public async Task<Pagination<DoctorModel.Response>> GetAll( int pageSize, int pageIndex, string? name = null)
     {
-        var doctors = await _persistence.Paginate<Doctor, string>(pageSize, pageIndex, d => !d.Deleted && (string.IsNullOrWhiteSpace(name) || d.Name.Contains(name)), d => d.Name, nameof(Doctor.Speciality));
+        var doctors = await _persistence.Paginate<Doctor, string>(pageSize, pageIndex, d => !d.Deleted && d.IsActive && (string.IsNullOrWhiteSpace(name) || d.Name.Contains(name)), d => d.Name, nameof(Doctor.Speciality));
         return doctors.Map(MapResponse);
     }
 
     //metodo para crear un doctor
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
-        var speciality = await _persistence.GetById<Speciality>(request.SpecialityId);
+        var speciality = await _persistence.GetById<Speciality>(request.SpecialtyId);
 
         if (speciality is null || speciality.Deleted)
             throw new EntityNotFoundException(SpecialityNotFound);
@@ -46,7 +46,7 @@ public class DoctorService : IDoctorService
         if (doctor is null || doctor.Deleted)
             throw new EntityNotFoundException(DoctorNotFound);
 
-        var speciality = await _persistence.GetById<Speciality>(request.SpecialityId);
+        var speciality = await _persistence.GetById<Speciality>(request.SpecialtyId);
 
         if (speciality is null || speciality.Deleted)
             throw new EntityNotFoundException(SpecialityNotFound);
@@ -58,30 +58,29 @@ public class DoctorService : IDoctorService
     }
 
     //metodo para obtener la disponibilidad de un doctor por id
-    public async Task<IEnumerable<DoctorModel.AvailabilityResponse>> GetAvailabilities(Guid id)
+    public async Task<IEnumerable<DoctorModel.AvailabilityResponse>>GetAvailabilities(Guid id)
     {
         var doctor = await _persistence.GetById<Doctor>(id);
 
-        if (doctor is null || doctor.Deleted)
+        if (doctor is null || doctor.Deleted || !doctor.IsActive)
             throw new EntityNotFoundException(DoctorNotFound);
 
         var now = DateTime.UtcNow;
-        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var nextMonth = monthStart.AddMonths(1);
-        var slots = await _persistence.GetFiltered<AvailabilitySlot>(slot => slot.DoctorId == id && slot.Start >= monthStart && slot.Start < nextMonth);
+
+        var nextMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
+
+        var slots = await _persistence.GetFiltered<AvailabilitySlot>(slot =>
+                slot.DoctorId == id &&
+                slot.Status == SlotStatus.AVAILABLE &&
+                slot.Start >= now &&
+                slot.Start < nextMonth);
 
         if (slots is null)
             return Enumerable.Empty<DoctorModel.AvailabilityResponse>();
 
         return slots
-            .GroupBy(slot => new{slot.RuleId, slot.Start.DayOfWeek})
-            .Select(group => new DoctorModel.AvailabilityResponse(
-                GetDayName(group.Key.DayOfWeek),
-                group.Min(slot => slot.Start.TimeOfDay)
-                    .ToString(@"hh\:mm"),
-                group.Max(slot => slot.End.TimeOfDay)
-                    .ToString(@"hh\:mm")))
-            .OrderBy(item => GetDayOrder(item.Day))
+            .OrderBy(slot => slot.Start)
+            .Select(slot => new DoctorModel.AvailabilityResponse(slot.Id, GetDayName(slot.Start.DayOfWeek), slot.Start.TimeOfDay.ToString(@"hh\:mm"), slot.End.TimeOfDay.ToString(@"hh\:mm")))
             .ToList();
     }
 
@@ -131,6 +130,6 @@ public class DoctorService : IDoctorService
     //metodo para mapear la respuesta del doctor
     private static DoctorModel.Response MapResponse(Doctor doctor)
     {
-        return new DoctorModel.Response(doctor.Id, doctor.Name, doctor.LicenseNumber, new DoctorModel.SpecialityDto( doctor.SpecialityId, doctor.Speciality?.Name));
+        return new DoctorModel.Response(doctor.Id, doctor.Name, doctor.LicenseNumber, new DoctorModel.SpecialtyDto(doctor.SpecialityId, doctor.Speciality?.Name ?? string.Empty));
     }
 }

@@ -30,24 +30,125 @@ public class PruebasUnitarias
         var request = new AppointmentModel.CreateRequest(
             DoctorId: Guid.NewGuid(),
             AvailabilitySlotId: Guid.NewGuid(),
-            PatientDni: 40123456,
+            Patient: new(40123456),
             Reason: "Control de rutina");
 
         _persistence.GetById<Doctor>(request.DoctorId).Returns((Doctor?)null); //aqui hace como que el doctor no existe en la bd, asi que devuelve null.
 
         // Act
-        var act = () => _appointmentTest.Create(request); //Prueba el create por el camino del doctor is null
+        var act = () => _appointmentTest.Create(request, "paciente@email.com"); //Prueba el create por el camino del doctor is null
 
         // Assert
         await Assert.ThrowsAsync<EntityNotFoundException>(act); //Aqui espera a q llegue la excepcion en el "act" 
     }
 
     [Fact]
-    public async Task AppointmentCreate_CuandoElDoctorEstaEliminado_EntoncesLanzaEntityNotFoundException(){}
+    public async Task AppointmentCreate_CuandoElDoctorEstaEliminado_EntoncesLanzaEntityNotFoundException()
+    {
+        {
+            // Arrange
+            var request = new AppointmentModel.CreateRequest(
+                DoctorId: Guid.NewGuid(),
+                AvailabilitySlotId: Guid.NewGuid(),
+                Patient: new(40123456),
+                Reason: "Control de rutina");
+
+            var speciality = new Speciality("Cardiología", "Especialidad del corazón");
+            var doctor = new Doctor("Dr. Juan Pérez", "MP1234", speciality, request.DoctorId);
+            doctor.MarkAsDeleted(); // el doctor existe, pero está eliminado lógicamente
+
+            _persistence.GetById<Doctor>(request.DoctorId).Returns(doctor);
+
+            // Act
+            var act = () => _appointmentTest.Create(request, "paciente@email.com");
+
+            // Assert
+            await Assert.ThrowsAsync<EntityNotFoundException>(act);
+        }
+    }
+
+ 
 
     [Fact]
-    public async Task AppointmentCreate_CuandoElSlotYaEstaReservado_EntoncesLanzaConflictException(){}
+    public async Task AppointmentCreate_CuandoElSlotYaEstaReservado_EntoncesLanzaConflictException()
+    {
+        // Arrange
+        var request = new AppointmentModel.CreateRequest(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            new AppointmentModel.PatientRequest(40123456),
+            "Control de rutina");
+
+        var speciality = new Speciality(
+            "Cardiología",
+            "Especialidad médica");
+
+        var doctor = new Doctor(
+            "Juan Pérez",
+            "MP12345",
+            speciality,
+            request.DoctorId);
+
+        var slot = new AvailabilitySlot
+        {
+            Id = request.AvailabilitySlotId,
+            DoctorId = request.DoctorId,
+            Status = SlotStatus.BOOKED,
+            Start = DateTime.UtcNow.AddHours(1),
+            End = DateTime.UtcNow.AddHours(2)
+        };
+
+        _persistence.GetById<Doctor>(request.DoctorId)
+            .Returns(doctor);
+
+        _persistence.GetById<AvailabilitySlot>(request.AvailabilitySlotId)
+            .Returns(slot);
+
+        // Act
+        var act = () => _appointmentTest.Create(request, "paciente@email.com");
+
+        // Assert
+        await Assert.ThrowsAsync<ConflictException>(act);
+    }
 
     [Fact]
-    public async Task AppointmentCreate_CuandoTodoEsValido_EntoncesCreaElTurnoConEstadoBooked(){}
+public async Task AppointmentCreate_CuandoTodoEsValido_EntoncesCreaElTurnoConEstadoBooked()
+{
+    // Arrange
+    var request = new AppointmentModel.CreateRequest(
+        DoctorId: Guid.NewGuid(),
+        AvailabilitySlotId: Guid.NewGuid(),
+        Patient: new(40123456),
+        Reason: "Control de rutina");
+
+    var speciality = new Speciality("Cardiología", "Especialidad del corazón");
+    var doctor = new Doctor("Dr. Juan Pérez", "MP1234", speciality, request.DoctorId);
+
+    var slot = new AvailabilitySlot
+    {
+        Id = request.AvailabilitySlotId,
+        DoctorId = request.DoctorId,
+        Start = DateTime.UtcNow.AddDays(1),
+        End = DateTime.UtcNow.AddDays(1).AddMinutes(30),
+        Status = SlotStatus.AVAILABLE
+    };
+
+    var patient = new ApplicationUser
+    {
+        UserName = "paciente@email.com",
+        Email = "paciente@email.com",
+        Dni = 40123456
+    };
+
+    _persistence.GetById<Doctor>(request.DoctorId).Returns(doctor);
+    _persistence.GetById<AvailabilitySlot>(request.AvailabilitySlotId).Returns(slot);
+    _userManager.FindByNameAsync("paciente@email.com").Returns(patient);
+
+    // Act
+    var result = await _appointmentTest.Create(request, "paciente@email.com");
+
+    // Assert
+    Assert.Equal("BOOKED", result.Status);
+    Assert.Equal(SlotStatus.BOOKED, slot.Status);
+}
 }

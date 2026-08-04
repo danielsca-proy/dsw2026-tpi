@@ -16,9 +16,16 @@ public class AppointmentCreateRequestValidator : AbstractValidator<AppointmentMo
             .NotEmpty()
             .WithMessage("es obligatorio");
 
-        RuleFor(x => x.PatientDni)
-            .Must(dni => dni.IsDniValid())
-            .WithMessage("debe tener 7 u 8 dígitos");
+        RuleFor(x => x.Patient)
+            .NotNull()
+            .WithMessage("es obligatorio");
+
+        When(x => x.Patient is not null, () =>
+        {
+            RuleFor(x => x.Patient!.Dni)
+                .Must(dni => dni.IsDniValid())
+                .WithMessage("debe tener 7 u 8 dígitos");
+        });
 
         RuleFor(x => x.Reason)
             .NotEmpty()

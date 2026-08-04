@@ -24,23 +24,23 @@ public class Appointment : EntityBase
         AvailabilitySlot = slot;
         PatientUserId = patientUserId;
         Reason = reason;
-        Status = AppointmentStatus.Booked;
+        Status = AppointmentStatus.BOOKED;
     }
 
     public void Cancel()
     {
-        Status = AppointmentStatus.Cancelled;
+        Status = AppointmentStatus.CANCELLED;
         CancelledAt = DateTime.UtcNow;
     }
 
     public void MarkAttended()
     {
-        Status = AppointmentStatus.Attended;
+        Status = AppointmentStatus.ATTENDED;
         AttendedAt = DateTime.UtcNow;
     }
 
     public void MarkNoShow()
     {
-        Status = AppointmentStatus.NoShow;
+        Status = AppointmentStatus.NO_SHOW;
     }
 }

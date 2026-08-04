@@ -4,7 +4,7 @@ using Dsw2026Tpi.CrossCutting.Helpers;
 
 namespace Dsw2026Tpi.Application.Validators;
 
-public class RegisterValidator : AbstractValidator<RegisterModel.Request>
+public class RegisterValidator : AbstractValidator<RegisterAdminModel.Request>
 {
     public RegisterValidator()
     {

@@ -135,7 +135,7 @@ public class AvailabilityService : IAvailabilityService
                     RuleId = rule.Id,
                     Start = DateTime.SpecifyKind(slotStart, DateTimeKind.Utc),
                     End = DateTime.SpecifyKind(slotEnd, DateTimeKind.Utc),
-                    Status = SlotStatus.Available,
+                    Status = SlotStatus.AVAILABLE,
                     Capacity = rule.Capacity,
                     BookedCount = 0
                 };
@@ -214,7 +214,7 @@ public class AvailabilityService : IAvailabilityService
                 DoctorId = doctorId,
                 EffectiveFrom = DateTime.UtcNow,
                 EffectiveTo = null,
-                Recurrence = RecurrenceType.Weekly,
+                Recurrence = RecurrenceType.WEEKLY,
                 DaysOfWeekCsv = string.Join(',', group.Select(g => g.Day)),
                 StartTime = group.Key.Start,
                 EndTime = group.Key.End,

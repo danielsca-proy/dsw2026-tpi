@@ -31,16 +31,20 @@ public class AppointmentController : AppController
     [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.AdminPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetByDate([FromQuery] string date)
+    public async Task<IActionResult> GetByDate([FromQuery] string date, [FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 0)
     {
-        var query = new AppointmentModel.GetByDateQuery(date);
+        var query = new AppointmentModel.GetByDateQuery(date, pageSize, pageIndex);
         var validation = await _getByDateValidator.ValidateAsync(query);
+
         Invalidez(validation);
 
         if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
-            throw new ValidationException().WithDetail("date", "formato inválido, se requiere YYYY-MM-DD");
+        {
+            throw new ValidationException()
+                .WithDetail( "date", "formato inválido, se requiere YYYY-MM-DD");
+        }
 
-        var appointments = await _service.GetByDate(parsedDate);
+        var appointments = await _service.GetByDate(parsedDate, pageSize, pageIndex);
         return Ok(appointments);
     }
 
@@ -73,7 +77,9 @@ public class AppointmentController : AppController
     [ProducesResponseType(typeof(IEnumerable<AppointmentModel.PatientResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByPatient([FromQuery] long dni)
     {
-        var appointments = await _service.GetByPatient(dni);
+        var authenticatedUserName = GetAuthenticatedUserName();
+
+        var appointments = await _service.GetByPatient(dni, authenticatedUserName);
         return Ok(appointments);
     }
 
@@ -84,26 +90,31 @@ public class AppointmentController : AppController
     [ProducesResponseType(typeof(AppointmentModel.CreateResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+
     public async Task<IActionResult> Create([FromBody] AppointmentModel.CreateRequest request)
     {
+        var authenticatedUserName = GetAuthenticatedUserName();
+
         var validation = await _createValidator.ValidateAsync(request);
         Invalidez(validation);
 
-        var appointment = await _service.Create(request);
+        var appointment = await _service.Create(request, authenticatedUserName);
         return Created($"/api/appointments/{appointment.Id}", appointment);
     }
 
     //Metodo para cancelar una cita
     [HttpDelete("{id}")]
     [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Cancel(Guid id, [FromQuery] long dni)
+    public async Task<IActionResult> Cancel(Guid id)
     {
-        await _service.Cancel(id, dni);
-        return NoContent();
+        var authenticatedUserName = GetAuthenticatedUserName();
+
+        await _service.Cancel(id, authenticatedUserName);
+        return Ok("ok");
     }
 
     //Mismo metodo para codigo
@@ -114,5 +125,14 @@ public class AppointmentController : AppController
         foreach (var error in validation.Errors)
             ex.WithDetail(error.PropertyName, error.ErrorMessage);
         throw ex;
+    }
+    private string GetAuthenticatedUserName()
+    {
+        var authenticatedUserName = User.Identity?.Name;
+
+        if (string.IsNullOrWhiteSpace(authenticatedUserName))
+            throw new AuthenticationException();
+
+        return authenticatedUserName;
     }
 }

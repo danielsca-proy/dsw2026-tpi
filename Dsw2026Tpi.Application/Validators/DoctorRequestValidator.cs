@@ -9,6 +9,6 @@ public class DoctorRequestValidator : AbstractValidator<DoctorModel.Request>
     {
         RuleFor(x => x.Name).NotEmpty().Length(3, 100);
         RuleFor(x => x.LicenseNumber).NotEmpty().MaximumLength(50);
-        RuleFor(x => x.SpecialityId).NotEqual(Guid.Empty).WithMessage("es obligatorio");
+        RuleFor(x => x.SpecialtyId).NotEqual(Guid.Empty).WithMessage("es obligatorio");
     }
 }
