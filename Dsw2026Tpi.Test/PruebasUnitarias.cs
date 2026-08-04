@@ -43,7 +43,29 @@ public class PruebasUnitarias
     }
 
     [Fact]
-    public async Task AppointmentCreate_CuandoElDoctorEstaEliminado_EntoncesLanzaEntityNotFoundException(){}
+    public async Task AppointmentCreate_CuandoElDoctorEstaEliminado_EntoncesLanzaEntityNotFoundException()
+    {
+        {
+            // Arrange
+            var request = new AppointmentModel.CreateRequest(
+                DoctorId: Guid.NewGuid(),
+                AvailabilitySlotId: Guid.NewGuid(),
+                Patient: new(40123456),
+                Reason: "Control de rutina");
+
+            var speciality = new Speciality("Cardiología", "Especialidad del corazón");
+            var doctor = new Doctor("Dr. Juan Pérez", "MP1234", speciality, request.DoctorId);
+            doctor.MarkAsDeleted(); // el doctor existe, pero está eliminado lógicamente
+
+            _persistence.GetById<Doctor>(request.DoctorId).Returns(doctor);
+
+            // Act
+            var act = () => _appointmentTest.Create(request, "paciente@email.com");
+
+            // Assert
+            await Assert.ThrowsAsync<EntityNotFoundException>(act);
+        }
+    }
 
     [Fact]
     public async Task AppointmentCreate_CuandoElSlotYaEstaReservado_EntoncesLanzaConflictException(){}
