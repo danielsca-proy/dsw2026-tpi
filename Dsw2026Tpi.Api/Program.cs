@@ -54,7 +54,9 @@ public class Program
             app.UseAuthorization();
 
             app.MapControllers();
-            app.MapHealthChecks("/health-check").RequireRateLimiting(RateLimitPolicies.General);
+            app.MapHealthChecks("/health-check")
+                .RequireAuthorization()
+                .RequireRateLimiting(RateLimitPolicies.General);
 
             Log.Information("Aplicación iniciada correctamente");
 
