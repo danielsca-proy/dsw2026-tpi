@@ -153,4 +153,7 @@
   <data name="DATA_INTEGRITY_CONFLICT" xml:space="preserve">
     <value>Ya existe un registro con los mismos datos</value>
   </data>
+  <data name="AUTHORIZATION_FAILED" xml:space="preserve">
+    <value>Se requieren permisos para la operación solicitada</value>
+  </data>
 </root>
