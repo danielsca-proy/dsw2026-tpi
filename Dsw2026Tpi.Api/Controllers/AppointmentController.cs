@@ -103,12 +103,12 @@ public class AppointmentController : AppController
     }
 
     //Metodo para cancelar una cita
-    [HttpDelete("{id}")]
+ [HttpDelete("{id}")]
 [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
 [ProducesResponseType(StatusCodes.Status200OK)]
 [ProducesResponseType(StatusCodes.Status404NotFound)]
 [ProducesResponseType(StatusCodes.Status409Conflict)]
-public async Task<IActionResult> Cancel(Guid id, [FromQuery] long dni)
+public async Task<IActionResult> Cancel(Guid id)
 {
     var authenticatedUserName = GetAuthenticatedUserName();
 
