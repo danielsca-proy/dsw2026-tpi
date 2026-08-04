@@ -26,5 +26,12 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => x.PatientUserId);
+
+        var bookedStatus = (int)AppointmentStatus.BOOKED;
+
+        builder.HasIndex(appointment => appointment.AvailabilitySlotId)
+            .IsUnique()
+            .HasFilter($"[Status] = {bookedStatus}")
+            .HasDatabaseName("UX_Appointments_AvailabilitySlotId_Booked");
     }
 }
