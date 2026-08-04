@@ -88,6 +88,15 @@ namespace Dsw2026Tpi.CrossCutting.Resources {
         }
         
         /// <summary>
+        ///   Busca una cadena traducida similar a Se requieren permisos para la operación solicitada.
+        /// </summary>
+        public static string AUTHORIZATION_FAILED {
+            get {
+                return ResourceManager.GetString("AUTHORIZATION_FAILED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Busca una cadena traducida similar a Ya existe un turno para el médico en ese horario.
         /// </summary>
         public static string AVAILABILITY_SLOT_CONFLICT {
