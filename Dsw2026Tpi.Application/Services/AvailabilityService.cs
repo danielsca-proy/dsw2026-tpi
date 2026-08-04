@@ -258,8 +258,7 @@ public class AvailabilityService : IAvailabilityService
             throw new EntityNotFoundException("Doctor");
 
         if (request.Days == null || !request.Days.Any())
-            throw new ValidationException()
-                .WithDetail("days", "se requiere al menos un dia con horario");
+            throw new ValidationException().WithDetail("days", "se requiere al menos un dia con horario");
 
         var parsed = new List<(string Day, TimeSpan Start, TimeSpan End)>();
 
@@ -267,37 +266,14 @@ public class AvailabilityService : IAvailabilityService
         {
             var dayName = NormalizeDayName(day.Day);
 
-            if (!TimeSpan.TryParseExact(
-                day.StartTime,
-                @"hh\:mm",
-                CultureInfo.InvariantCulture,
-                out var start))
-            {
-                throw new ValidationException()
-                    .WithDetail(
-                        $"days[{day.Day}].startTime",
-                        "formato inválido, se requiere HH:mm");
-            }
+            if (!TimeSpan.TryParseExact(day.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
+                throw new ValidationException().WithDetail($"days[{day.Day}].startTime", "formato inválido, se requiere HH:mm");
 
-            if (!TimeSpan.TryParseExact(
-                day.EndTime,
-                @"hh\:mm",
-                CultureInfo.InvariantCulture,
-                out var end))
-            {
-                throw new ValidationException()
-                    .WithDetail(
-                        $"days[{day.Day}].endTime",
-                        "formato inválido, se requiere HH:mm");
-            }
+            if (!TimeSpan.TryParseExact(day.EndTime, @"hh\:mm", CultureInfo.InvariantCulture, out var end))
+                throw new ValidationException().WithDetail($"days[{day.Day}].endTime", "formato inválido, se requiere HH:mm");
 
             if (start >= end)
-            {
-                throw new ValidationException()
-                    .WithDetail(
-                        $"days[{day.Day}]",
-                        "La hora de inicio debe ser antes de la hora de finalización");
-            }
+                throw new ValidationException().WithDetail($"days[{day.Day}]", "La hora de inicio debe ser antes de la hora de finalización");
 
             parsed.Add((dayName, start, end));
         }
@@ -305,61 +281,35 @@ public class AvailabilityService : IAvailabilityService
         ValidateNoOverlapsWithinRequest(parsed);
 
         var now = DateTime.UtcNow;
-
-        var monthStart = new DateTime(
-            now.Year,
-            now.Month,
-            1,
-            0,
-            0,
-            0,
-            DateTimeKind.Utc);
-
+        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var nextMonthStart = monthStart.AddMonths(1);
 
-        var slotsInMonth = await _persistence.GetFiltered<AvailabilitySlot>(
-            slot =>
-                slot.DoctorId == doctorId &&
-                slot.Start > now &&
-                slot.Start < nextMonthStart);
+        var slotsInMonth = await _persistence.GetFiltered<AvailabilitySlot>(slot =>
+            slot.DoctorId == doctorId && slot.Start > now && slot.Start < nextMonthStart);
 
-        var existingSlots = (slotsInMonth ??
-            Enumerable.Empty<AvailabilitySlot>()).ToList();
+        var existingSlots = (slotsInMonth ?? Enumerable.Empty<AvailabilitySlot>()).ToList();
 
-        var existingRules = await _persistence.GetFiltered<AvailabilityRule>(
-            rule =>
-                rule.DoctorId == doctorId &&
-                rule.IsActive &&
-                rule.EffectiveFrom < nextMonthStart &&
-                (rule.EffectiveTo == null ||
-                 rule.EffectiveTo >= monthStart));
+        var existingRules = await _persistence.GetFiltered<AvailabilityRule>(rule =>
+            rule.DoctorId == doctorId &&
+            rule.IsActive &&
+            rule.EffectiveFrom < nextMonthStart &&
+            (rule.EffectiveTo == null || rule.EffectiveTo >= monthStart));
 
         var referencedSlotIds = new HashSet<Guid>();
-        var slotIds = existingSlots
-            .Select(slot => slot.Id)
-            .ToList();
+        var slotIds = existingSlots.Select(slot => slot.Id).ToList();
 
         if (slotIds.Count > 0)
         {
-            var appointments = await _persistence.GetFiltered<Appointment>(
-                appointment =>
-                    slotIds.Contains(appointment.AvailabilitySlotId));
+            var appointments = await _persistence.GetFiltered<Appointment>(appointment => slotIds.Contains(appointment.AvailabilitySlotId));
 
             if (appointments != null)
-            {
-                referencedSlotIds = appointments
-                    .Select(appointment => appointment.AvailabilitySlotId)
-                    .ToHashSet();
-            }
+                referencedSlotIds = appointments.Select(appointment => appointment.AvailabilitySlotId).ToHashSet();
         }
 
-        var existingSlotsByStart = existingSlots
-            .ToDictionary(slot => slot.Start, slot => slot);
-
+        var existingSlotsByStart = existingSlots.ToDictionary(slot => slot.Start, slot => slot);
         var desiredSlotStarts = new HashSet<DateTime>();
         var createdRules = new List<AvailabilityRule>();
-        var groups = parsed.GroupBy(schedule =>
-            (schedule.Start, schedule.End));
+        var groups = parsed.GroupBy(schedule => (schedule.Start, schedule.End));
 
         foreach (var group in groups)
         {
@@ -370,9 +320,7 @@ public class AvailabilityService : IAvailabilityService
                 EffectiveFrom = now,
                 EffectiveTo = null,
                 Recurrence = RecurrenceType.WEEKLY,
-                DaysOfWeekCsv = string.Join(
-                    ',',
-                    group.Select(schedule => schedule.Day)),
+                DaysOfWeekCsv = string.Join(',', group.Select(schedule => schedule.Day)),
                 StartTime = group.Key.Start,
                 EndTime = group.Key.End,
                 SlotDuration = TimeSpan.FromMinutes(30),
@@ -384,10 +332,7 @@ public class AvailabilityService : IAvailabilityService
             await _persistence.Add(rule);
             createdRules.Add(rule);
 
-            var ruleDays = group
-                .Select(schedule => schedule.Day)
-                .ToHashSet();
-
+            var ruleDays = group.Select(schedule => schedule.Day).ToHashSet();
             var currentDate = now.Date;
 
             while (currentDate < nextMonthStart)
@@ -408,13 +353,8 @@ public class AvailabilityService : IAvailabilityService
                     continue;
                 }
 
-                var slotStart = DateTime.SpecifyKind(
-                    currentDate.Add(rule.StartTime),
-                    DateTimeKind.Utc);
-
-                var dayEnd = DateTime.SpecifyKind(
-                    currentDate.Add(rule.EndTime),
-                    DateTimeKind.Utc);
+                var slotStart = DateTime.SpecifyKind(currentDate.Add(rule.StartTime), DateTimeKind.Utc);
+                var dayEnd = DateTime.SpecifyKind(currentDate.Add(rule.EndTime), DateTimeKind.Utc);
 
                 while (slotStart.Add(rule.SlotDuration) <= dayEnd)
                 {
@@ -424,9 +364,7 @@ public class AvailabilityService : IAvailabilityService
                     {
                         desiredSlotStarts.Add(slotStart);
 
-                        if (existingSlotsByStart.TryGetValue(
-                            slotStart,
-                            out var existingSlot))
+                        if (existingSlotsByStart.TryGetValue(slotStart, out var existingSlot))
                         {
                             if (existingSlot.Status != SlotStatus.BOOKED)
                             {
@@ -482,8 +420,7 @@ public class AvailabilityService : IAvailabilityService
             await _persistence.Delete(existingSlot);
         }
 
-        foreach (var existingRule in existingRules ??
-            Enumerable.Empty<AvailabilityRule>())
+        foreach (var existingRule in existingRules ?? Enumerable.Empty<AvailabilityRule>())
         {
             existingRule.IsActive = false;
             existingRule.EffectiveTo = now;
@@ -491,22 +428,20 @@ public class AvailabilityService : IAvailabilityService
             await _persistence.Update(existingRule);
         }
 
-        return createdRules
-            .Select(rule => new AvailabilityModel.Response
-            {
-                Id = rule.Id,
-                DoctorId = rule.DoctorId,
-                EffectiveFrom = rule.EffectiveFrom,
-                EffectiveTo = rule.EffectiveTo,
-                Recurrence = rule.Recurrence,
-                DaysOfWeekCsv = rule.DaysOfWeekCsv,
-                StartTime = rule.StartTime,
-                EndTime = rule.EndTime,
-                SlotDuration = rule.SlotDuration,
-                Capacity = rule.Capacity,
-                IsActive = rule.IsActive,
-                ExcludedDatesCsv = rule.ExcludedDatesCsv
-            })
-            .ToList();
+        return createdRules.Select(rule => new AvailabilityModel.Response
+        {
+            Id = rule.Id,
+            DoctorId = rule.DoctorId,
+            EffectiveFrom = rule.EffectiveFrom,
+            EffectiveTo = rule.EffectiveTo,
+            Recurrence = rule.Recurrence,
+            DaysOfWeekCsv = rule.DaysOfWeekCsv,
+            StartTime = rule.StartTime,
+            EndTime = rule.EndTime,
+            SlotDuration = rule.SlotDuration,
+            Capacity = rule.Capacity,
+            IsActive = rule.IsActive,
+            ExcludedDatesCsv = rule.ExcludedDatesCsv
+        }).ToList();
     }
 }
