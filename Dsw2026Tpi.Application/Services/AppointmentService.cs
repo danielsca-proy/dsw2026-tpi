@@ -20,8 +20,6 @@ public class AppointmentService : IAppointmentService
         _persistence = persistence;
         _userManager = userManager;
     }
-
-    //metodo para la creacion de un turno
     public async Task<AppointmentModel.CreateResponse> Create(AppointmentModel.CreateRequest request, string authenticatedUserName)
     {
         var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
@@ -56,8 +54,6 @@ public class AppointmentService : IAppointmentService
         await _persistence.Add(appointment);
         return new AppointmentModel.CreateResponse(appointment.Id, appointment.Status.ToString(), slot.Start, slot.End);
     }
-
-    //metodo para cancelar un turno
     public async Task Cancel(Guid id, string authenticatedUserName)
     {
         var appointment = await _persistence.GetById<Appointment>(id, nameof(Appointment.AvailabilitySlot));
@@ -91,8 +87,6 @@ public class AppointmentService : IAppointmentService
 
         await _persistence.Update(appointment);
     }
-
-    //metodo para obtener los turnos de un paciente mediante su dni
     public async Task<IEnumerable<AppointmentModel.PatientResponse>> GetByPatient(long dni, string authenticatedUserName)
     {
         var patient = await GetAuthenticatedPatient(authenticatedUserName, dni);
@@ -109,33 +103,49 @@ public class AppointmentService : IAppointmentService
             a.AvailabilitySlot.End
         ));
     }
-
-    //metodo para obtener los turnos de un dia especifico
-    public async Task<Pagination<AppointmentModel.DailyResponse>>GetByDate(DateOnly date, int pageSize, int pageIndex)
+    public async Task<Pagination<AppointmentModel.AdministrativeResponse>>GetByDate(DateOnly date, int pageSize, int pageIndex)
     {
         var dayStart = date.ToDateTime(TimeOnly.MinValue);
         var dayEnd = date.ToDateTime(TimeOnly.MaxValue);
 
-        var appointments =
-            await _persistence.Paginate<Appointment, DateTime>(pageSize, pageIndex, appointment => 
-                appointment.AvailabilitySlot!.Start >= dayStart && appointment.AvailabilitySlot.Start <= dayEnd,
-                appointment => appointment.AvailabilitySlot!.Start,
+        var result = await _persistence.Paginate<Appointment, DateTime>(pageSize, pageIndex,appointment =>
+                appointment.AvailabilitySlot!.Start >= dayStart &&
+                appointment.AvailabilitySlot.Start <= dayEnd,
+                appointment =>
+                appointment.AvailabilitySlot!.Start,
                 nameof(Appointment.AvailabilitySlot),
                 $"{nameof(Appointment.AvailabilitySlot)}." +
-                $"{nameof(AvailabilitySlot.Doctor)}");
+                $"{nameof(AvailabilitySlot.Doctor)}",
+                $"{nameof(Appointment.AvailabilitySlot)}." +
+                $"{nameof(AvailabilitySlot.Doctor)}." +
+                $"{nameof(Doctor.Speciality)}");
 
-        return appointments.Map(appointment => new AppointmentModel.DailyResponse(
-                    appointment.Id,
-                    appointment.AvailabilitySlot!.DoctorId,
-                    appointment.AvailabilitySlot.Doctor?.Name ?? string.Empty,
-                    appointment.PatientUserId,
-                    appointment.Reason,
-                    appointment.Status.ToString(),
-                    appointment.AvailabilitySlot.Start,
-                    appointment.AvailabilitySlot.End));
+        var appointments = result.Data.ToList();
+
+        var patientIds = appointments
+            .Select(appointment => appointment.PatientUserId)
+            .Distinct()
+            .ToArray();
+
+        var patientDnis = patientIds.Length == 0 ? new Dictionary<string, long>() : await _userManager.Users
+                .Where(user => patientIds.Contains(user.Id))
+                .ToDictionaryAsync(user => user.Id, user => user.Dni);
+
+        var data = appointments.Select(appointment =>
+        {
+            var slot = appointment.AvailabilitySlot!;
+            var doctor = slot.Doctor!;
+            var specialty = doctor.Speciality!;
+            var patientDni = patientDnis[appointment.PatientUserId];
+
+            return new AppointmentModel.AdministrativeResponse(appointment.Id, appointment.Status.ToString(),
+                   new AppointmentModel.AdministrativePatient(patientDni, string.Empty), //Fullname vacio...
+                   new AppointmentModel.AdministrativeDoctor(doctor.Id, doctor.Name,
+                   new AppointmentModel.AdministrativeSpecialty(specialty.Id, specialty.Name)));
+        });
+
+        return new Pagination<AppointmentModel.AdministrativeResponse>( result.PageSize, result.PageIndex, result.Total, data);
     }
-
-    //metodo de busqueda de turnos filtrado
     public async Task<Pagination<AppointmentModel.SearchResponse>> Search(Guid? specialtyId, Guid? doctorId, long? dni, DateOnly? date, int pageSize, int pageIndex)
     {
         string? patientId = null;
@@ -168,7 +178,6 @@ public class AppointmentService : IAppointmentService
             a.AvailabilitySlot.Start,
             a.Status.ToString()));
     }
-
     private async Task<ApplicationUser> GetAuthenticatedPatient(string authenticatedUserName, long requestedDni)
     {
         var patient = await _userManager.FindByNameAsync(authenticatedUserName);
