@@ -1,5 +1,8 @@
 using Dsw2026Tpi.Api.Configurations;
 using Dsw2026Tpi.Api.Middlewares;
+using Dsw2026Tpi.CrossCutting.Models;
+using Dsw2026Tpi.CrossCutting.Resources;
+using Microsoft.AspNetCore.Mvc;
 using Serilog;
 
 namespace Dsw2026Tpi.Api;
@@ -26,7 +29,25 @@ public class Program
             builder.Services.AddAppCors(builder.Configuration);
             builder.Services.AddAppRateLimiting(builder.Configuration);
             builder.Services.AddAppDependencies();
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .ConfigureApiBehaviorOptions(options =>
+                {
+                    options.InvalidModelStateResponseFactory = context =>
+                    {
+                        var error = new ErrorResponse(nameof(ErrorCodes.VALIDATION_ERROR), ErrorCodes.VALIDATION_ERROR);
+                        foreach (var kvp in context.ModelState)
+                        {
+                            if (kvp.Value?.Errors.Count > 0)
+                            {
+                                foreach (var err in kvp.Value.Errors)
+                                {
+                                    error.AddDetail(kvp.Key, err.ErrorMessage);
+                                }
+                            }
+                        }
+                        return new BadRequestObjectResult(error);
+                    };
+                });
             builder.Services.AddHealthChecks();
 
             var app = builder.Build();
