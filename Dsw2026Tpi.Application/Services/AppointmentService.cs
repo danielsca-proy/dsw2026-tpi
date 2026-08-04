@@ -76,9 +76,7 @@ public class AppointmentService : IAppointmentService
 
         if (appointment.Status != AppointmentStatus.Booked)
         {
-            throw new ConflictException(
-                nameof(ErrorCodes.APPOINTMENT_CONFLICT),
-                "Solo se pueden cancelar turnos reservados");
+            throw new ConflictException(nameof(ErrorCodes.APPOINTMENT_CONFLICT), "Solo se pueden cancelar turnos reservados");
         }
 
         appointment.Cancel();
@@ -113,23 +111,28 @@ public class AppointmentService : IAppointmentService
     }
 
     //metodo para obtener los turnos de un dia especifico
-    public async Task<IEnumerable<AppointmentModel.DailyResponse>> GetByDate(DateOnly date)
+    public async Task<Pagination<AppointmentModel.DailyResponse>>GetByDate(DateOnly date, int pageSize, int pageIndex)
     {
         var dayStart = date.ToDateTime(TimeOnly.MinValue);
         var dayEnd = date.ToDateTime(TimeOnly.MaxValue);
 
-        var appointments = await _persistence.GetFiltered<Appointment>(a => a.AvailabilitySlot!.Start >= dayStart && a.AvailabilitySlot!.Start <= dayEnd, nameof(Appointment.AvailabilitySlot), $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}");
+        var appointments =
+            await _persistence.Paginate<Appointment, DateTime>(pageSize, pageIndex, appointment => 
+                appointment.AvailabilitySlot!.Start >= dayStart && appointment.AvailabilitySlot.Start <= dayEnd,
+                appointment => appointment.AvailabilitySlot!.Start,
+                nameof(Appointment.AvailabilitySlot),
+                $"{nameof(Appointment.AvailabilitySlot)}." +
+                $"{nameof(AvailabilitySlot.Doctor)}");
 
-        return (appointments ?? Enumerable.Empty<Appointment>()).Select(a => new AppointmentModel.DailyResponse(
-            a.Id,
-            a.AvailabilitySlot!.DoctorId,
-            a.AvailabilitySlot.Doctor?.Name ?? string.Empty,
-            a.PatientUserId,
-            a.Reason,
-            a.Status.ToString(),
-            a.AvailabilitySlot.Start,
-            a.AvailabilitySlot.End
-        ));
+        return appointments.Map(appointment => new AppointmentModel.DailyResponse(
+                    appointment.Id,
+                    appointment.AvailabilitySlot!.DoctorId,
+                    appointment.AvailabilitySlot.Doctor?.Name ?? string.Empty,
+                    appointment.PatientUserId,
+                    appointment.Reason,
+                    appointment.Status.ToString(),
+                    appointment.AvailabilitySlot.Start,
+                    appointment.AvailabilitySlot.End));
     }
 
     //metodo de busqueda de turnos filtrado

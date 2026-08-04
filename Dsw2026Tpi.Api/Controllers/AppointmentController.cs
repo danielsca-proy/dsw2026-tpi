@@ -31,16 +31,20 @@ public class AppointmentController : AppController
     [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.AdminPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetByDate([FromQuery] string date)
+    public async Task<IActionResult> GetByDate([FromQuery] string date, [FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 0)
     {
-        var query = new AppointmentModel.GetByDateQuery(date);
+        var query = new AppointmentModel.GetByDateQuery(date, pageSize, pageIndex);
         var validation = await _getByDateValidator.ValidateAsync(query);
+
         Invalidez(validation);
 
         if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
-            throw new ValidationException().WithDetail("date", "formato inválido, se requiere YYYY-MM-DD");
+        {
+            throw new ValidationException()
+                .WithDetail( "date", "formato inválido, se requiere YYYY-MM-DD");
+        }
 
-        var appointments = await _service.GetByDate(parsedDate);
+        var appointments = await _service.GetByDate(parsedDate, pageSize, pageIndex);
         return Ok(appointments);
     }
 

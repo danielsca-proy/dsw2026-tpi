@@ -12,5 +12,14 @@ public class AppointmentGetByDateQueryValidator : AbstractValidator<AppointmentM
             .NotEmpty()
             .Must(d => DateOnly.TryParseExact(d, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
             .WithMessage("formato inválido, se requiere YYYY-MM-DD");
+
+        RuleFor(x => x.PageSize)
+            .GreaterThan(0)
+            .WithMessage("debe ser mayor a 0");
+
+        RuleFor(x => x.PageIndex)
+            .GreaterThanOrEqualTo(0)
+            .WithMessage("no puede ser negativo");
+
     }
 }
