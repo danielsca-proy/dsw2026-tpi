@@ -16,10 +16,4 @@ public class AvailabilityRule : EntityBase
     public int Capacity { get; set; } = 1;
     public bool IsActive { get; set; } = true;
     public string? ExcludedDatesCsv { get; set; }
-
-    [NotMapped]
-    public IEnumerable<DayOfWeek> DaysOfWeek => string.IsNullOrWhiteSpace(DaysOfWeekCsv) ? Enumerable.Empty<DayOfWeek>() : DaysOfWeekCsv.Split(',').Select(s => (DayOfWeek)int.Parse(s));
-
-    [NotMapped]
-    public IEnumerable<DateOnly> ExcludedDates => string.IsNullOrWhiteSpace(ExcludedDatesCsv) ? Enumerable.Empty<DateOnly>() : ExcludedDatesCsv.Split(',').Select(s => DateOnly.Parse(s));
 }

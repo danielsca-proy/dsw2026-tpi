@@ -93,7 +93,7 @@ public class AppointmentController : AppController
     [ProducesResponseType(typeof(AppointmentModel.CreateResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+
     public async Task<IActionResult> Create([FromBody] AppointmentModel.CreateRequest request)
     {
         var authenticatedUserName = GetAuthenticatedUserName();
