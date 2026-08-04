@@ -25,6 +25,7 @@ public class AvailabilityController : AppController
     [ProducesResponseType(typeof(List<AvailabilityModel.Response>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] AvailabilityModel.Request request)
     {
         var validation = await _requestValidator.ValidateAsync(request);
@@ -39,6 +40,7 @@ public class AvailabilityController : AppController
     [ProducesResponseType(typeof(List<AvailabilityModel.Response>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Update([FromBody] AvailabilityModel.Request request)
     {
         var validation = await _requestValidator.ValidateAsync(request);

@@ -49,14 +49,14 @@ public static class SecurityConfigurationExtensions
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         context.Response.ContentType = "application/json";
                         var error = new ErrorResponse(nameof(ErrorCodes.AUTHENTICATION_FAILED), ErrorCodes.AUTHENTICATION_FAILED);
-                        await context.Response.WriteAsync(JsonSerializer.Serialize(error));
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(error, AppJsonOptions.Default));
                     },
                     OnForbidden = async context =>
                     {
                         context.Response.StatusCode = StatusCodes.Status403Forbidden;
                         context.Response.ContentType = "application/json";
                         var error = new ErrorResponse(nameof(ErrorCodes.AUTHORIZATION_FAILED), ErrorCodes.AUTHORIZATION_FAILED);
-                        await context.Response.WriteAsync(JsonSerializer.Serialize(error));
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(error, AppJsonOptions.Default));
                     }
                 };
             });

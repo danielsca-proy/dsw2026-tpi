@@ -90,6 +90,7 @@ public class AppointmentController : AppController
     [ProducesResponseType(typeof(AppointmentModel.CreateResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
 
     public async Task<IActionResult> Create([FromBody] AppointmentModel.CreateRequest request)
     {
@@ -103,18 +104,18 @@ public class AppointmentController : AppController
     }
 
     //Metodo para cancelar una cita
- [HttpDelete("{id}")]
-[Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
-[ProducesResponseType(StatusCodes.Status200OK)]
-[ProducesResponseType(StatusCodes.Status404NotFound)]
-[ProducesResponseType(StatusCodes.Status409Conflict)]
-public async Task<IActionResult> Cancel(Guid id)
-{
-    var authenticatedUserName = GetAuthenticatedUserName();
+    [HttpDelete("{id}")]
+    [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Cancel(Guid id)
+    {
+        var authenticatedUserName = GetAuthenticatedUserName();
 
-    await _service.Cancel(id, authenticatedUserName);
-    return Ok("ok");
-}
+        await _service.Cancel(id, authenticatedUserName);
+        return Ok("ok");
+    }
 
     //Mismo metodo para codigo
     private static void Invalidez(FluentValidation.Results.ValidationResult validation)

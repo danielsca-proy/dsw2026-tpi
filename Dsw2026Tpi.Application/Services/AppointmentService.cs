@@ -23,8 +23,12 @@ public class AppointmentService : IAppointmentService
     public async Task<AppointmentModel.CreateResponse> Create(AppointmentModel.CreateRequest request, string authenticatedUserName)
     {
         var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
-        if (doctor is null || doctor.Deleted)
+        if (doctor is null || doctor.Deleted )
             throw new EntityNotFoundException("Doctor");
+
+        if (!doctor.IsActive)
+            throw new BusinessRuleException("No se pueden reservar turnos con un médico inactivo.", "DOCTOR_INACTIVE");
+        
 
         var slot = await _persistence.GetById<AvailabilitySlot>(request.AvailabilitySlotId);
         if (slot is null || slot.DoctorId != request.DoctorId)

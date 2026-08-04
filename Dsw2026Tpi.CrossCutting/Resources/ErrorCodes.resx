@@ -138,4 +138,19 @@
   <data name="VALIDATION_ERROR" xml:space="preserve">
     <value>Uno o más errores de validación ocurrieron</value>
   </data>
+  <data name="PATIENT_DNI_CONFLICT" xml:space="preserve">
+    <value>El DNI ya está asociado a otro usuario</value>
+  </data>
+  <data name="SPECIALITY_NAME_CONFLICT" xml:space="preserve">
+    <value>Ya existe una especialidad con ese nombre</value>
+  </data>
+  <data name="AVAILABILITY_SLOT_CONFLICT" xml:space="preserve">
+    <value>Ya existe un turno para el médico en ese horario</value>
+  </data>
+  <data name="APPOINTMENT_SLOT_CONFLICT" xml:space="preserve">
+    <value>El turno ya fue reservado por otro paciente</value>
+  </data>
+  <data name="DATA_INTEGRITY_CONFLICT" xml:space="preserve">
+    <value>Ya existe un registro con los mismos datos</value>
+  </data>
 </root>
