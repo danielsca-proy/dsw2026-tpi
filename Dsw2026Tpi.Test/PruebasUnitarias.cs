@@ -45,8 +45,49 @@ public class PruebasUnitarias
     [Fact]
     public async Task AppointmentCreate_CuandoElDoctorEstaEliminado_EntoncesLanzaEntityNotFoundException(){}
 
+ 
+
     [Fact]
-    public async Task AppointmentCreate_CuandoElSlotYaEstaReservado_EntoncesLanzaConflictException(){}
+    public async Task AppointmentCreate_CuandoElSlotYaEstaReservado_EntoncesLanzaConflictException()
+    {
+        // Arrange
+        var request = new AppointmentModel.CreateRequest(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            new AppointmentModel.PatientRequest(40123456),
+            "Control de rutina");
+
+        var speciality = new Speciality(
+            "Cardiología",
+            "Especialidad médica");
+
+        var doctor = new Doctor(
+            "Juan Pérez",
+            "MP12345",
+            speciality,
+            request.DoctorId);
+
+        var slot = new AvailabilitySlot
+        {
+            Id = request.AvailabilitySlotId,
+            DoctorId = request.DoctorId,
+            Status = SlotStatus.BOOKED,
+            Start = DateTime.UtcNow.AddHours(1),
+            End = DateTime.UtcNow.AddHours(2)
+        };
+
+        _persistence.GetById<Doctor>(request.DoctorId)
+            .Returns(doctor);
+
+        _persistence.GetById<AvailabilitySlot>(request.AvailabilitySlotId)
+            .Returns(slot);
+
+        // Act
+        var act = () => _appointmentTest.Create(request, "paciente@email.com");
+
+        // Assert
+        await Assert.ThrowsAsync<ConflictException>(act);
+    }
 
     [Fact]
     public async Task AppointmentCreate_CuandoTodoEsValido_EntoncesCreaElTurnoConEstadoBooked(){}
