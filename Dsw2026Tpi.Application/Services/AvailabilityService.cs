@@ -262,9 +262,9 @@ public class AvailabilityService : IAvailabilityService
 
         var parsed = new List<(string Day, TimeSpan Start, TimeSpan End)>();
 
-        foreach (var day in request.Days)
+        foreach (var d in request.Days)
         {
-            var dayName = NormalizeDayName(day.Day);
+            var dayName = NormalizeDayName(d.Day);
 
             if (!TimeSpan.TryParseExact(day.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
                 throw new ValidationException().WithDetail($"days[{day.Day}].startTime", "formato inválido, se requiere HH:mm");
@@ -317,7 +317,7 @@ public class AvailabilityService : IAvailabilityService
             {
                 Id = Guid.NewGuid(),
                 DoctorId = doctorId,
-                EffectiveFrom = now,
+                EffectiveFrom = DateTime.UtcNow,
                 EffectiveTo = null,
                 Recurrence = RecurrenceType.WEEKLY,
                 DaysOfWeekCsv = string.Join(',', group.Select(schedule => schedule.Day)),
