@@ -29,23 +29,27 @@ public class AuthenticationService : IAuthenticationService
     public async Task<LoginAdminModel.Response> LoginAdmin(LoginAdminModel.Request request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email) ?? throw new AuthenticationException();
-        var result = await _signInManager.CheckPassword(user, request.Password);
+        var passwordIsValid = await _signInManager.CheckPassword(user, request.Password);
 
-        if (!result)
+        if (!passwordIsValid)
         {
-            _logger.LogError("Intento de login fallido para: {Email}", request.Email);
+            _logger.LogError("Intento de login administrativo fallido para: {Email}", request.Email);
             throw new AuthenticationException();
         }
 
-        var role = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
-        var token  = _jwtService.GenerateToken(user.UserName!, role);
+        var isAdministrator = await _userManager.IsInRoleAsync(user, Roles.Administrator);
 
-        return new LoginAdminModel.Response(token, role);
+        if (!isAdministrator)
+        {
+            _logger.LogWarning("Intento de login administrativo de un usuario sin rol Administrador: {Email}", request.Email);
+            throw new AuthenticationException();
+        }
+
+        var token = _jwtService.GenerateToken(user.UserName!, Roles.Administrator);
+        return new LoginAdminModel.Response(token, Roles.Administrator);
     }
 
-
-    public async Task<LoginPatientModel.Response> LoginPatient(
-    LoginPatientModel.Request request)
+    public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
 
