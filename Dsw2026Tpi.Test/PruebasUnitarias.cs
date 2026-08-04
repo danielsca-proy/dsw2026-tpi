@@ -36,7 +36,7 @@ public class PruebasUnitarias
         _persistence.GetById<Doctor>(request.DoctorId).Returns((Doctor?)null); //aqui hace como que el doctor no existe en la bd, asi que devuelve null.
 
         // Act
-        var act = () => _appointmentTest.Create(request); //Prueba el create por el camino del doctor is null
+        var act = () => _appointmentTest.Create(request, "paciente@email.com"); //Prueba el create por el camino del doctor is null
 
         // Assert
         await Assert.ThrowsAsync<EntityNotFoundException>(act); //Aqui espera a q llegue la excepcion en el "act" 

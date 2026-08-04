@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dsw2026Tpi.Api.Controllers;
 
 [Route("api/specialties")]
-[Authorize(Policy = Policies.AdminPolicy)]
+[Authorize]
 public class SpecialityController : AppController
 {
     private readonly ISpecialityService _service;
@@ -23,7 +23,6 @@ public class SpecialityController : AppController
         _getAllValidator = getAllValidator;
     }
 
-    //Metodo para tomar las especialidades
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll([FromQuery] int pageSize, [FromQuery] int pageIndex, [FromQuery] string? name = null)
@@ -36,9 +35,8 @@ public class SpecialityController : AppController
         return Ok(specialities);
     }
 
-
-    //Metodo para crear una especialidad
     [HttpPost]
+    [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(SpecialityModel.Response),StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] SpecialityModel.Request request)
@@ -50,8 +48,8 @@ public class SpecialityController : AppController
         return Created($"/api/specialties/{speciality.Id}", speciality);
     }
 
-    //Metodo para modificar una especialidad
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(typeof(SpecialityModel.Response),StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -64,8 +62,8 @@ public class SpecialityController : AppController
         return Ok(speciality);
     }
 
-    //Metodo para eliminar una especialidad (Logicamente)
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = Policies.AdminPolicy)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
