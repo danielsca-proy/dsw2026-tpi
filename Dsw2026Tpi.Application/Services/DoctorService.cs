@@ -20,14 +20,14 @@ public class DoctorService : IDoctorService
     //metodo para obtener todos los doctores paginado y filtrado
     public async Task<Pagination<DoctorModel.Response>> GetAll( int pageSize, int pageIndex, string? name = null)
     {
-        var doctors = await _persistence.Paginate<Doctor, string>(pageSize, pageIndex, d => !d.Deleted && (string.IsNullOrWhiteSpace(name) || d.Name.Contains(name)), d => d.Name, nameof(Doctor.Speciality));
+        var doctors = await _persistence.Paginate<Doctor, string>(pageSize, pageIndex, d => !d.Deleted && d.IsActive && (string.IsNullOrWhiteSpace(name) || d.Name.Contains(name)), d => d.Name, nameof(Doctor.Speciality));
         return doctors.Map(MapResponse);
     }
 
     //metodo para crear un doctor
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
-        var speciality = await _persistence.GetById<Speciality>(request.SpecialityId);
+        var speciality = await _persistence.GetById<Speciality>(request.SpecialtyId);
 
         if (speciality is null || speciality.Deleted)
             throw new EntityNotFoundException(SpecialityNotFound);
@@ -46,7 +46,7 @@ public class DoctorService : IDoctorService
         if (doctor is null || doctor.Deleted)
             throw new EntityNotFoundException(DoctorNotFound);
 
-        var speciality = await _persistence.GetById<Speciality>(request.SpecialityId);
+        var speciality = await _persistence.GetById<Speciality>(request.SpecialtyId);
 
         if (speciality is null || speciality.Deleted)
             throw new EntityNotFoundException(SpecialityNotFound);
@@ -130,6 +130,6 @@ public class DoctorService : IDoctorService
     //metodo para mapear la respuesta del doctor
     private static DoctorModel.Response MapResponse(Doctor doctor)
     {
-        return new DoctorModel.Response(doctor.Id, doctor.Name, doctor.LicenseNumber, new DoctorModel.SpecialityDto( doctor.SpecialityId, doctor.Speciality?.Name));
+        return new DoctorModel.Response(doctor.Id, doctor.Name, doctor.LicenseNumber, new DoctorModel.SpecialtyDto(doctor.SpecialityId, doctor.Speciality?.Name ?? string.Empty));
     }
 }

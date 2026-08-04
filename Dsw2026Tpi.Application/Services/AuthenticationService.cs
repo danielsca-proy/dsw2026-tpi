@@ -47,7 +47,7 @@ public class AuthenticationService : IAuthenticationService
         }
 
         var token = _jwtService.GenerateToken(user.UserName!, Roles.Administrator);
-        return new LoginAdminModel.Response(token, Roles.Administrator);
+      return new LoginAdminModel.Response(token, Roles.Administrator.ToUpperInvariant());
     }
 
     public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
@@ -91,7 +91,7 @@ public class AuthenticationService : IAuthenticationService
 
         var token = _jwtService.GenerateToken(user.UserName!, Roles.Patient);
 
-        return new LoginPatientModel.Response(token, Roles.Patient);
+        return new LoginPatientModel.Response(token, Roles.Patient.ToUpperInvariant());
     }
 
     //Metodo que sera eliminado a futuro

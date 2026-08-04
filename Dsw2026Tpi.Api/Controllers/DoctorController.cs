@@ -72,14 +72,14 @@ public class DoctorController : AppController
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = Policies.AdminPolicy)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(Guid id)
-    {
-        await _service.Delete(id);
-        return NoContent();
-    }
+[Authorize(Policy = Policies.AdminPolicy)]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
+public async Task<IActionResult> Delete(Guid id)
+{
+    await _service.Delete(id);
+    return Ok("ok");
+}
     private static void Invalidez(FluentValidation.Results.ValidationResult validation)
     {
         if (validation.IsValid) return;
