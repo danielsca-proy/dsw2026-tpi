@@ -154,7 +154,7 @@ public class AvailabilityService : IAvailabilityService
         }
     }
 
-    //metodo para crear intervalos de disponibilidad para un doctor
+    //metodo para crear intervalos de disponibilidad para un doctorr
     public async Task<List<AvailabilityModel.Response>> Create(AvailabilityModel.Request request)
     {
         var doctorId = Guid.Parse(request.DoctorId);
