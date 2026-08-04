@@ -104,17 +104,17 @@ public class AppointmentController : AppController
 
     //Metodo para cancelar una cita
     [HttpDelete("{id}")]
-    [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Cancel(Guid id, [FromQuery] long dni)
-    {
-        var authenticatedUserName = GetAuthenticatedUserName();
+[Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
+[ProducesResponseType(StatusCodes.Status409Conflict)]
+public async Task<IActionResult> Cancel(Guid id, [FromQuery] long dni)
+{
+    var authenticatedUserName = GetAuthenticatedUserName();
 
-        await _service.Cancel(id, authenticatedUserName);
-        return Ok("ok");
-    }
+    await _service.Cancel(id, authenticatedUserName);
+    return Ok("ok");
+}
 
     //Mismo metodo para codigo
     private static void Invalidez(FluentValidation.Results.ValidationResult validation)
