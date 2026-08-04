@@ -12,7 +12,9 @@ public class AvailabilitySlotConfiguration : IEntityTypeConfiguration<Availabili
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Start).IsRequired();
         builder.Property(x => x.End).IsRequired();
-        builder.HasIndex(x => new { x.DoctorId, x.Start });
+        builder.HasIndex(x => new { x.DoctorId, x.Start })
+            .IsUnique()
+            .HasDatabaseName("UX_AvailabilitySlots_DoctorId_Start"); ;
         builder.Property(x => x.RowVersion).IsRowVersion();
     }
 }
