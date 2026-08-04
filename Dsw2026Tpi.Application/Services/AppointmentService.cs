@@ -33,12 +33,12 @@ public class AppointmentService : IAppointmentService
         if (slot.Start <= DateTime.UtcNow)
             throw new ValidationException().WithDetail("availabilitySlotId", "no se pueden reservar turnos pasados");
 
-        if (slot.Status != SlotStatus.Available)
+        if (slot.Status != SlotStatus.AVAILABLE)
             throw new ConflictException(nameof(ErrorCodes.APPOINTMENT_CONFLICT), "El turno ya no está disponible");
 
         var patient = await GetAuthenticatedPatient(authenticatedUserName, request.Patient!.Dni);
 
-        slot.Status = SlotStatus.Booked;
+        slot.Status = SlotStatus.BOOKED;
         slot.BookedCount++;
 
         try
@@ -70,7 +70,7 @@ public class AppointmentService : IAppointmentService
         if (appointment.PatientUserId != patient.Id)
             throw new EntityNotFoundException("Appointment");
 
-        if (appointment.Status != AppointmentStatus.Booked)
+        if (appointment.Status != AppointmentStatus.BOOKED)
         {
             throw new ConflictException(nameof(ErrorCodes.APPOINTMENT_CONFLICT), "Solo se pueden cancelar turnos reservados");
         }
@@ -79,7 +79,7 @@ public class AppointmentService : IAppointmentService
 
         if (appointment.AvailabilitySlot is not null)
         {
-            appointment.AvailabilitySlot.Status = SlotStatus.Available;
+            appointment.AvailabilitySlot.Status = SlotStatus.AVAILABLE;
             appointment.AvailabilitySlot.BookedCount = Math.Max(0, appointment.AvailabilitySlot.BookedCount - 1);
 
             await _persistence.Update(appointment.AvailabilitySlot);
@@ -91,7 +91,7 @@ public class AppointmentService : IAppointmentService
     {
         var patient = await GetAuthenticatedPatient(authenticatedUserName, dni);
 
-        var appointments = await _persistence.GetFiltered<Appointment>(a => a.PatientUserId == patient.Id && a.Status == AppointmentStatus.Booked, nameof(Appointment.AvailabilitySlot), $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}");
+        var appointments = await _persistence.GetFiltered<Appointment>(a => a.PatientUserId == patient.Id && a.Status == AppointmentStatus.BOOKED, nameof(Appointment.AvailabilitySlot), $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}");
 
         return (appointments ?? Enumerable.Empty<Appointment>()).Select(a => new AppointmentModel.PatientResponse(
             a.Id,
@@ -197,7 +197,7 @@ public class AppointmentService : IAppointmentService
 
             var patientDni = patientDnis[appointment.PatientUserId];
 
-            return new AppointmentModel.SearchAdministrativeResponse( appointment.Id, appointment.Status.ToString(),
+            return new AppointmentModel.SearchAdministrativeResponse(appointment.Id, appointment.Status.ToString(),
                 new AppointmentModel.AdministrativePatient(patientDni, string.Empty),
                 new AppointmentModel.AdministrativeDoctor(doctor.Id, doctor.Name,
                 new AppointmentModel.AdministrativeSpecialty(specialty.Id, specialty.Name)), slot.Start);

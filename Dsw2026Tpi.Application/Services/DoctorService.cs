@@ -71,7 +71,7 @@ public class DoctorService : IDoctorService
 
         var slots = await _persistence.GetFiltered<AvailabilitySlot>(slot =>
                 slot.DoctorId == id &&
-                slot.Status == SlotStatus.Available &&
+                slot.Status == SlotStatus.AVAILABLE &&
                 slot.Start >= now &&
                 slot.Start < nextMonth);
 
