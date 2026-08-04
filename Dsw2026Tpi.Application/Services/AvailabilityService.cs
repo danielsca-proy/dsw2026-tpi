@@ -286,9 +286,7 @@ public class AvailabilityService : IAvailabilityService
         var slotsInMonth = await _persistence.GetFiltered<AvailabilitySlot>(
             s => s.DoctorId == doctorId && s.Start >= monthStartDate && s.Start <= monthEndDate);
 
-        if (slotsInMonth != null && slotsInMonth.Any(s => s.Status == SlotStatus.BOOKED))
-            throw new BusinessRuleException("No se puede actualizar la disponibilidad: existen turnos reservados en el mes actual.", "AVAILABILITY_HAS_BOOKED_SLOTS");
-
+      
         var now = DateTime.UtcNow;
         var monthStart = new DateTime(now.Year, now.Month, 1);
         var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
@@ -296,19 +294,23 @@ public class AvailabilityService : IAvailabilityService
         var existingRules = await _persistence.GetFiltered<AvailabilityRule>(
             r => r.DoctorId == doctorId && r.EffectiveFrom >= monthStart && r.EffectiveFrom <= monthEnd);
 
-        if (existingRules != null)
-        {
-            foreach (var er in existingRules)
-            {
-                await _persistence.Delete(er);
-            }
-        }
+       // if (existingRules != null)
+       // {
+       //     foreach (var er in existingRules)
+       //     {
+       //         await _persistence.Delete(er);
+       //     }
+       // }
 
         if (slotsInMonth != null)
         {
-            foreach (var es in slotsInMonth)
+            foreach (var slot in slotsInMonth)
             {
-                await _persistence.Delete(es);
+                if (slot.Status == SlotStatus.AVAILABLE &&
+                    slot.Start > DateTime.UtcNow)
+                {
+                    await _persistence.Delete(slot);
+                }
             }
         }
 
