@@ -10,6 +10,10 @@ public class SpecialityConfiguration : IEntityTypeConfiguration<Speciality>
     {
         builder.ToTable("Specialities");
 
+        builder.HasIndex(speciality => speciality.Name)
+            .IsUnique()
+            .HasDatabaseName("UX_Specialities_Name");
+
         builder.Property(x => x.Name)
             .IsRequired()
             .HasMaxLength(100);
