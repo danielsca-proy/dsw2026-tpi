@@ -38,7 +38,7 @@ public class AppointmentService : IAppointmentService
         if (slot.Status != SlotStatus.Available)
             throw new ConflictException(nameof(ErrorCodes.APPOINTMENT_CONFLICT), "El turno ya no está disponible");
 
-        var patient = await GetAuthenticatedPatient(authenticatedUserName, request.PatientDni);
+        var patient = await GetAuthenticatedPatient(authenticatedUserName, request.Patient!.Dni);
 
         slot.Status = SlotStatus.Booked;
         slot.BookedCount++;
