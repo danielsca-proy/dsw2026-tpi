@@ -108,8 +108,8 @@ public class AppointmentController : AppController
     {
         var authenticatedUserName = GetAuthenticatedUserName();
 
-        await _service.Cancel(id, dni, authenticatedUserName);
-        return NoContent();
+        await _service.Cancel(id, authenticatedUserName);
+        return Ok("ok");
     }
 
     //Mismo metodo para codigo

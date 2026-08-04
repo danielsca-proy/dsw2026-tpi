@@ -58,19 +58,28 @@ public class AppointmentService : IAppointmentService
     }
 
     //metodo para cancelar un turno
-    public async Task Cancel(Guid id, long patientDni, string authenticatedUserName)
+    public async Task Cancel(Guid id, string authenticatedUserName)
     {
         var appointment = await _persistence.GetById<Appointment>(id, nameof(Appointment.AvailabilitySlot));
+
         if (appointment is null)
             throw new EntityNotFoundException("Appointment");
 
-        var patient = await GetAuthenticatedPatient(authenticatedUserName, patientDni);
+        var patient = await _userManager.FindByNameAsync(
+            authenticatedUserName);
+
+        if (patient is null)
+            throw new AuthenticationException();
 
         if (appointment.PatientUserId != patient.Id)
             throw new EntityNotFoundException("Appointment");
 
         if (appointment.Status != AppointmentStatus.Booked)
-            throw new ConflictException(nameof(ErrorCodes.APPOINTMENT_CONFLICT), "Solo se pueden cancelar turnos reservados");
+        {
+            throw new ConflictException(
+                nameof(ErrorCodes.APPOINTMENT_CONFLICT),
+                "Solo se pueden cancelar turnos reservados");
+        }
 
         appointment.Cancel();
 
@@ -78,6 +87,7 @@ public class AppointmentService : IAppointmentService
         {
             appointment.AvailabilitySlot.Status = SlotStatus.Available;
             appointment.AvailabilitySlot.BookedCount = Math.Max(0, appointment.AvailabilitySlot.BookedCount - 1);
+
             await _persistence.Update(appointment.AvailabilitySlot);
         }
 
