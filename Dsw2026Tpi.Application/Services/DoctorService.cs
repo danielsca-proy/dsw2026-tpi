@@ -27,7 +27,7 @@ public class DoctorService : IDoctorService
     //metodo para crear un doctor
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
-        var speciality = await _persistence.GetById<Speciality>(request.SpecialityId);
+        var speciality = await _persistence.GetById<Speciality>(request.SpecialtyId);
 
         if (speciality is null || speciality.Deleted)
             throw new EntityNotFoundException(SpecialityNotFound);
@@ -46,7 +46,7 @@ public class DoctorService : IDoctorService
         if (doctor is null || doctor.Deleted)
             throw new EntityNotFoundException(DoctorNotFound);
 
-        var speciality = await _persistence.GetById<Speciality>(request.SpecialityId);
+        var speciality = await _persistence.GetById<Speciality>(request.SpecialtyId);
 
         if (speciality is null || speciality.Deleted)
             throw new EntityNotFoundException(SpecialityNotFound);
@@ -130,6 +130,6 @@ public class DoctorService : IDoctorService
     //metodo para mapear la respuesta del doctor
     private static DoctorModel.Response MapResponse(Doctor doctor)
     {
-        return new DoctorModel.Response(doctor.Id, doctor.Name, doctor.LicenseNumber, new DoctorModel.SpecialityDto( doctor.SpecialityId, doctor.Speciality?.Name));
+        return new DoctorModel.Response(doctor.Id, doctor.Name, doctor.LicenseNumber, new DoctorModel.SpecialtyDto(doctor.SpecialityId, doctor.Speciality?.Name ?? string.Empty));
     }
 }
