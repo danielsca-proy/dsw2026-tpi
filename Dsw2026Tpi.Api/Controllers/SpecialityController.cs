@@ -25,7 +25,7 @@ public class SpecialityController : AppController
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] int pageSize, [FromQuery] int pageIndex, [FromQuery] string? name = null)
+    public async Task<IActionResult> GetAll([FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 0, [FromQuery] string? name = null)
     {
         var query = new SpecialityModel.GetAllQuery(pageSize, pageIndex, name);
         var validation = await _getAllValidator.ValidateAsync(query);

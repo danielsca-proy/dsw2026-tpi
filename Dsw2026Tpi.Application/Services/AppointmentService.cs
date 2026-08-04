@@ -170,13 +170,13 @@ public class AppointmentService : IAppointmentService
                     (!specialtyId.HasValue || appointment.AvailabilitySlot!.Doctor!.SpecialityId == specialtyId.Value) &&
                     (!doctorId.HasValue || appointment.AvailabilitySlot!.DoctorId == doctorId.Value) &&
                     (patientId == null || appointment.PatientUserId == patientId) && (!dayStart.HasValue || (appointment.AvailabilitySlot!.Start >= dayStart.Value && appointment.AvailabilitySlot.Start <= dayEnd!.Value)),
-                appointment => appointment.AvailabilitySlot!.Start,
-                nameof(Appointment.AvailabilitySlot),
-                $"{nameof(Appointment.AvailabilitySlot)}." +
-                $"{nameof(AvailabilitySlot.Doctor)}",
-                $"{nameof(Appointment.AvailabilitySlot)}." +
-                $"{nameof(AvailabilitySlot.Doctor)}." +
-                $"{nameof(Doctor.Speciality)}");
+                    appointment => appointment.AvailabilitySlot!.Start,
+                    nameof(Appointment.AvailabilitySlot),
+                    $"{nameof(Appointment.AvailabilitySlot)}." +
+                    $"{nameof(AvailabilitySlot.Doctor)}",
+                    $"{nameof(Appointment.AvailabilitySlot)}." +
+                    $"{nameof(AvailabilitySlot.Doctor)}." +
+                    $"{nameof(Doctor.Speciality)}");
 
         var appointments = result.Data.ToList();
 
