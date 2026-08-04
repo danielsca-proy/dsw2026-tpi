@@ -14,12 +14,14 @@ public class AuthenticationController : AppController
     private readonly IAuthenticationService _authenticationService;
     private readonly IValidator<LoginAdminModel.Request> _loginAdminValidator;
     private readonly IValidator<LoginPatientModel.Request> _loginPatientValidator;
+    private readonly IValidator<RegisterAdminModel.Request> _registerValidator;
 
-    public AuthenticationController(IAuthenticationService authenticationService, IValidator<LoginAdminModel.Request> loginAdminValidator, IValidator<LoginPatientModel.Request> loginPatientValidator) 
+    public AuthenticationController(IAuthenticationService authenticationService, IValidator<LoginAdminModel.Request> loginAdminValidator, IValidator<LoginPatientModel.Request> loginPatientValidator, IValidator<RegisterAdminModel.Request> registerValidator) 
     {
         _authenticationService = authenticationService;
         _loginAdminValidator = loginAdminValidator;
         _loginPatientValidator = loginPatientValidator;
+        _registerValidator = registerValidator;
     }
 
     [HttpPost("admin/login")]
@@ -48,6 +50,20 @@ public class AuthenticationController : AppController
 
         var result = await _authenticationService.LoginPatient(request);
         return Ok(result);
+    }
+
+    //Este metodo sera eliminado a futuro.
+    [HttpPost("admin/register")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> Register([FromBody] RegisterAdminModel.Request request)
+    {
+        var validation = await _registerValidator.ValidateAsync(request);
+        Invalidez(validation);
+
+        var result = await _authenticationService.RegisterAdmin(request);
+        return Ok(result.Email);
     }
 
     private static void Invalidez(FluentValidation.Results.ValidationResult validation)
