@@ -22,7 +22,7 @@ public class AppointmentService : IAppointmentService
     }
 
     //metodo para la creacion de un turno
-    public async Task<AppointmentModel.CreateResponse> Create(AppointmentModel.CreateRequest request)
+    public async Task<AppointmentModel.CreateResponse> Create(AppointmentModel.CreateRequest request, string authenticatedUserName)
     {
         var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
         if (doctor is null || doctor.Deleted)
@@ -38,9 +38,7 @@ public class AppointmentService : IAppointmentService
         if (slot.Status != SlotStatus.Available)
             throw new ConflictException(nameof(ErrorCodes.APPOINTMENT_CONFLICT), "El turno ya no está disponible");
 
-        var patient = _userManager.Users.FirstOrDefault(u => u.Dni == request.PatientDni);
-        if (patient is null)
-            throw new EntityNotFoundException("Patient");
+        var patient = await GetAuthenticatedPatient(authenticatedUserName, request.PatientDni);
 
         slot.Status = SlotStatus.Booked;
         slot.BookedCount++;
@@ -60,15 +58,13 @@ public class AppointmentService : IAppointmentService
     }
 
     //metodo para cancelar un turno
-    public async Task Cancel(Guid id, long patientDni)
+    public async Task Cancel(Guid id, long patientDni, string authenticatedUserName)
     {
         var appointment = await _persistence.GetById<Appointment>(id, nameof(Appointment.AvailabilitySlot));
         if (appointment is null)
             throw new EntityNotFoundException("Appointment");
 
-        var patient = _userManager.Users.FirstOrDefault(u => u.Dni == patientDni);
-        if (patient is null)
-            throw new EntityNotFoundException("Patient");
+        var patient = await GetAuthenticatedPatient(authenticatedUserName, patientDni);
 
         if (appointment.PatientUserId != patient.Id)
             throw new EntityNotFoundException("Appointment");
@@ -89,11 +85,9 @@ public class AppointmentService : IAppointmentService
     }
 
     //metodo para obtener los turnos de un paciente mediante su dni
-    public async Task<IEnumerable<AppointmentModel.PatientResponse>> GetByPatient(long dni)
+    public async Task<IEnumerable<AppointmentModel.PatientResponse>> GetByPatient(long dni, string authenticatedUserName)
     {
-        var patient = _userManager.Users.FirstOrDefault(u => u.Dni == dni);
-        if (patient is null)
-            throw new EntityNotFoundException("Patient");
+        var patient = await GetAuthenticatedPatient(authenticatedUserName, dni);
 
         var appointments = await _persistence.GetFiltered<Appointment>(a => a.PatientUserId == patient.Id && a.Status == AppointmentStatus.Booked, nameof(Appointment.AvailabilitySlot), $"{nameof(Appointment.AvailabilitySlot)}.{nameof(AvailabilitySlot.Doctor)}");
 
@@ -160,5 +154,15 @@ public class AppointmentService : IAppointmentService
             new AppointmentModel.SearchDoctor(a.AvailabilitySlot.DoctorId, a.AvailabilitySlot.Doctor.Name),
             a.AvailabilitySlot.Start,
             a.Status.ToString()));
+    }
+
+    private async Task<ApplicationUser> GetAuthenticatedPatient(string authenticatedUserName, long requestedDni)
+    {
+        var patient = await _userManager.FindByNameAsync(authenticatedUserName);
+
+        if (patient is null || patient.Dni != requestedDni)
+            throw new AuthenticationException();
+
+        return patient;
     }
 }

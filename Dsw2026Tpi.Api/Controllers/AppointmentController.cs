@@ -73,7 +73,9 @@ public class AppointmentController : AppController
     [ProducesResponseType(typeof(IEnumerable<AppointmentModel.PatientResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByPatient([FromQuery] long dni)
     {
-        var appointments = await _service.GetByPatient(dni);
+        var authenticatedUserName = GetAuthenticatedUserName();
+
+        var appointments = await _service.GetByPatient(dni, authenticatedUserName);
         return Ok(appointments);
     }
 
@@ -87,10 +89,12 @@ public class AppointmentController : AppController
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Create([FromBody] AppointmentModel.CreateRequest request)
     {
+        var authenticatedUserName = GetAuthenticatedUserName();
+
         var validation = await _createValidator.ValidateAsync(request);
         Invalidez(validation);
 
-        var appointment = await _service.Create(request);
+        var appointment = await _service.Create(request, authenticatedUserName);
         return Created($"/api/appointments/{appointment.Id}", appointment);
     }
 
@@ -102,7 +106,9 @@ public class AppointmentController : AppController
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Cancel(Guid id, [FromQuery] long dni)
     {
-        await _service.Cancel(id, dni);
+        var authenticatedUserName = GetAuthenticatedUserName();
+
+        await _service.Cancel(id, dni, authenticatedUserName);
         return NoContent();
     }
 
@@ -114,5 +120,14 @@ public class AppointmentController : AppController
         foreach (var error in validation.Errors)
             ex.WithDetail(error.PropertyName, error.ErrorMessage);
         throw ex;
+    }
+    private string GetAuthenticatedUserName()
+    {
+        var authenticatedUserName = User.Identity?.Name;
+
+        if (string.IsNullOrWhiteSpace(authenticatedUserName))
+            throw new AuthenticationException();
+
+        return authenticatedUserName;
     }
 }
