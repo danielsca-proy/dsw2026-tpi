@@ -4,6 +4,7 @@ using Dsw2026Tpi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dsw2026Tpi.Data.Migrations.Application
 {
     [DbContext(typeof(Dsw2026TpiDbContext))]
-    partial class Dsw2026TpiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260804184923_IncreaseAvailabilityRuleDaysLength")]
+    partial class IncreaseAvailabilityRuleDaysLength
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -58,10 +61,7 @@ namespace Dsw2026Tpi.Data.Migrations.Application
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AvailabilitySlotId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_Appointments_AvailabilitySlotId_Booked")
-                        .HasFilter("[Status] = 0");
+                    b.HasIndex("AvailabilitySlotId");
 
                     b.HasIndex("PatientUserId");
 
@@ -165,9 +165,7 @@ namespace Dsw2026Tpi.Data.Migrations.Application
 
                     b.HasIndex("RuleId");
 
-                    b.HasIndex("DoctorId", "Start")
-                        .IsUnique()
-                        .HasDatabaseName("UX_AvailabilitySlots_DoctorId_Start");
+                    b.HasIndex("DoctorId", "Start");
 
                     b.ToTable("AvailabilitySlots", (string)null);
                 });
@@ -236,10 +234,6 @@ namespace Dsw2026Tpi.Data.Migrations.Application
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique()
-                        .HasDatabaseName("UX_Specialities_Name");
 
                     b.ToTable("Specialities", (string)null);
                 });
