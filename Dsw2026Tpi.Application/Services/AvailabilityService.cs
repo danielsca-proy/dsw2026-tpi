@@ -168,18 +168,18 @@ public class AvailabilityService : IAvailabilityService
 
         var parsed = new List<(string Day, TimeSpan Start, TimeSpan End)>();
 
-        foreach (var d in request.Days)
+        foreach (var day in request.Days)
         {
-            var dayName = NormalizeDayName(d.Day);
-            if (!TimeSpan.TryParseExact(d.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
-                throw new ValidationException().WithDetail($"days[{d.Day}].startTime", "Formato de hora inválido. Debe ser HH:mm");
+            var dayName = NormalizeDayName(day.Day);
 
+            if (!TimeSpan.TryParseExact(day.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
+                throw new ValidationException().WithDetail($"days[{day.Day}].startTime", "formato inválido, se requiere HH:mm");
 
-            if (!TimeSpan.TryParseExact(d.EndTime, @"hh\:mm", CultureInfo.InvariantCulture, out var end))
-                throw new ValidationException().WithDetail($"days[{d.Day}].endTime", "Formato de hora inválido. Debe ser HH:mm");
+            if (!TimeSpan.TryParseExact(day.EndTime, @"hh\:mm", CultureInfo.InvariantCulture, out var end))
+                throw new ValidationException().WithDetail($"days[{day.Day}].endTime", "formato inválido, se requiere HH:mm");
 
             if (start >= end)
-                throw new ValidationException().WithDetail($"days[{d.Day}]", "La hora de inicio debe ser antes de la hora de finalización");
+                throw new ValidationException().WithDetail($"days[{day.Day}]", "La hora de inicio debe ser antes de la hora de finalización");
 
             parsed.Add((dayName, start, end));
         }
@@ -262,9 +262,9 @@ public class AvailabilityService : IAvailabilityService
 
         var parsed = new List<(string Day, TimeSpan Start, TimeSpan End)>();
 
-        foreach (var d in request.Days)
+        foreach (var day in request.Days)
         {
-            var dayName = NormalizeDayName(d.Day);
+            var dayName = NormalizeDayName(day.Day);
 
             if (!TimeSpan.TryParseExact(day.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
                 throw new ValidationException().WithDetail($"days[{day.Day}].startTime", "formato inválido, se requiere HH:mm");
@@ -317,7 +317,7 @@ public class AvailabilityService : IAvailabilityService
             {
                 Id = Guid.NewGuid(),
                 DoctorId = doctorId,
-                EffectiveFrom = DateTime.UtcNow,
+                EffectiveFrom = now,
                 EffectiveTo = null,
                 Recurrence = RecurrenceType.WEEKLY,
                 DaysOfWeekCsv = string.Join(',', group.Select(schedule => schedule.Day)),
