@@ -9,6 +9,7 @@ namespace Dsw2026Tpi.Api.Controllers;
 /// </summary>
 [ApiController]
 [EnableRateLimiting(RateLimitPolicies.General)] //Para evitar tener que hacerlo en todos los controladores, lo hacemos aqui
+[ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public abstract class AppController : ControllerBase
 {
 }

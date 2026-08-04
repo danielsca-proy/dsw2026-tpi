@@ -28,7 +28,6 @@ public class AuthenticationController : AppController
     [EnableRateLimiting(RateLimitPolicies.AdminLogin)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Login([FromBody] LoginAdminModel.Request request)
     {
         var validation = await _loginAdminValidator.ValidateAsync(request);
@@ -42,7 +41,6 @@ public class AuthenticationController : AppController
     [EnableRateLimiting(RateLimitPolicies.PatientLogin)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> LoginPatient([FromBody] LoginPatientModel.Request request)
     {
         var validation = await _loginPatientValidator.ValidateAsync(request);
@@ -56,7 +54,6 @@ public class AuthenticationController : AppController
     [HttpPost("admin/register")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Register([FromBody] RegisterAdminModel.Request request)
     {
         var validation = await _registerValidator.ValidateAsync(request);
