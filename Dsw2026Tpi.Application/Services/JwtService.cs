@@ -14,6 +14,7 @@ public class JwtService
         _config = config;
     }
 
+    //metodo para generar el tokenn jwt
     public string GenerateToken(string username, string? role)
     {
         if (_config == null) throw new ArgumentNullException();

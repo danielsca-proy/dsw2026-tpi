@@ -1,6 +1,9 @@
 # Trabajo Práctico Integrador
 ## Desarrollo de Software 2026
+## Comisión 3k3
+## Integrantes - Legajos
 
+<<<<<<< HEAD
 Acceso al [documento](https://frtutneduar-my.sharepoint.com/:b:/g/personal/franciscovicente_doc_frt_utn_edu_ar/IQD-5kaAARqnT5eL7EnPMCPgAfmPoH09HkfmQQYH8pMgqdA?e=i6C3fT)
 
 Instrucciones:
@@ -14,3 +17,9 @@ Instrucciones:
 * Tener en cuenta que ya se realizaron las migraciones de Identity, crear nuevas de ser necesario
 * Para más detalles, revisar la grabación de la última clase
 * El endpoint de registración de usuarios administradores está disponible para crear usuarios y poder hacer pruebas, a futuro se eliminará
+=======
+Escalante Daniel Alejo Baltazar - 60554 
+// Ibarra Mauro Benjamín - 60698
+// Mendez Nazarena Rosario - 58272
+// Navarrete Suárez María Julia - 57808
+>>>>>>> compañero/development
