@@ -232,16 +232,8 @@ namespace Dsw2026Tpi.Data.Migrations.Identity
                     b.Property<bool>("Deleted")
                         .HasColumnType("bit");
 
-                    b.Property<long>("Dni")
-                        .HasColumnType("bigint");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
-
-                    b.HasIndex("Dni")
-                        .IsUnique()
-                        .HasDatabaseName("UX_ApplicationUsers_Dni")
-                        .HasFilter("[Dni] IS NOT NULL");
 
                     b.ToTable("ApplicationUsers", (string)null);
                 });
