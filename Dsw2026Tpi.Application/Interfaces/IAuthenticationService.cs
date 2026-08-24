@@ -4,7 +4,7 @@ namespace Dsw2026Tpi.Application.Interfaces;
 
 public interface IAuthenticationService
 {
-    Task<RegisterModel.Response> Register(RegisterModel.Request request);
+    Task<RegisterAdminModel.Response> RegisterAdmin(RegisterAdminModel.Request request); //A futuro sera eliminado
     Task<LoginAdminModel.Response> LoginAdmin(LoginAdminModel.Request request);
-    Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Response request);
+    Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request);
 }
