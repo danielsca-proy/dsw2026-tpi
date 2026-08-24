@@ -16,12 +16,7 @@ public class AuthenticationDbContext: IdentityDbContext
     {
         base.OnModelCreating(builder);
 
-        builder.Entity<ApplicationUser>(b => { 
-            b.ToTable("ApplicationUsers");
-            b.HasIndex(user => user.Dni)
-                .IsUnique()
-                .HasDatabaseName("UX_ApplicationUsers_Dni");
-        });
+        builder.Entity<ApplicationUser>(b => { b.ToTable("ApplicationUsers"); });
         builder.Entity<IdentityUser>(b => { b.ToTable("Users"); });
         builder.Entity<IdentityRole>(b => { b.ToTable("Roles"); });
         builder.Entity<IdentityUserRole<string>>(b => { b.ToTable("UsersRoles"); });
