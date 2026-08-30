@@ -16,7 +16,6 @@ public class AuthenticationService : IAuthenticationService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly JwtService _jwtService;
     private readonly ILogger<AuthenticationService> _logger;
-
     public AuthenticationService(UserManager<ApplicationUser> userManager, ISignInService signInManager, RoleManager<IdentityRole> roleManager, JwtService jwtService, ILogger<AuthenticationService> logger)
     {
         _userManager = userManager;
@@ -26,7 +25,6 @@ public class AuthenticationService : IAuthenticationService
         _logger = logger;
 
     }
-
     public async Task<LoginAdminModel.Response> LoginAdmin(LoginAdminModel.Request request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email) ?? throw new AuthenticationException();
@@ -49,7 +47,6 @@ public class AuthenticationService : IAuthenticationService
         var token = _jwtService.GenerateToken(user.UserName!, Roles.Administrator);
       return new LoginAdminModel.Response(token, Roles.Administrator.ToUpperInvariant());
     }
-
     public async Task<LoginPatientModel.Response> LoginPatient(LoginPatientModel.Request request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
@@ -93,8 +90,6 @@ public class AuthenticationService : IAuthenticationService
 
         return new LoginPatientModel.Response(token, Roles.Patient.ToUpperInvariant());
     }
-
-    //Metodo que sera eliminado a futuro
     public async Task<RegisterAdminModel.Response> RegisterAdmin(RegisterAdminModel.Request request)
     {
         var user = new ApplicationUser
@@ -117,7 +112,4 @@ public class AuthenticationService : IAuthenticationService
 
         return new RegisterAdminModel.Response(request.Email);
     }
-
-
-
 }

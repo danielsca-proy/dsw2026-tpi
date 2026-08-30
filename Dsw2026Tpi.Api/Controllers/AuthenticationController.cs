@@ -51,7 +51,7 @@ public class AuthenticationController : AppController
         return Ok(result);
     }
 
-    //Este metodo sera eliminado a futuro.
+    //Este metodo debe ser eliminado a futuro, o añadirle autorizacion para que solo otros admin puedan registrar a uno nuevo.
     [HttpPost("admin/register")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

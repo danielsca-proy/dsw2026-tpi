@@ -14,9 +14,4 @@ public class ValidationException : AppException
             nameof(ErrorCodes.VALIDATION_ERROR))
     {
     }
-
-    public ValidationException(string message, string errorCode)
-        : base(message, errorCode)
-    {
-    }
 }

@@ -7,40 +7,31 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Dsw2026Tpi.Application.Services
-{
+namespace Dsw2026Tpi.Application.Services;
     public class SpecialityService : ISpecialityService
     {
         private readonly IPersistence _persistence;
-        private const string SpecialityNotFound = "SpecialityId";
-
-
+        private const string SpecialityId = "SpecialityId";
         public SpecialityService(IPersistence persistence)
         {
             _persistence = persistence;
         }
-
-        //metodo para crear una especialidad
         public async Task<SpecialityModel.Response> Create(SpecialityModel.Request request)
         {
             var speciality = new Speciality(request.Name, request.Description);
             await _persistence.Add<Speciality>(speciality);
             return new SpecialityModel.Response(speciality.Id, speciality.Name, speciality.Description);
         }
-
-        //metodo para eliminar una especialidad (logicamente)
         public async Task Delete(Guid id)
         {
            var speciality = await _persistence.GetById<Speciality>(id);
 
            if (speciality is null || speciality.Deleted)
-                throw new EntityNotFoundException(SpecialityNotFound);
+                throw new EntityNotFoundException(SpecialityId);
 
             speciality.MarkAsDeleted();
             await _persistence.Update<Speciality>(speciality);
         }
-
-        //metodo para obtener todas las especialidades
         public async Task<Pagination<SpecialityModel.Response>> GetAll(int pageSize, int pageIndex, string? name = null)
         {
             var specialities = await _persistence.Paginate<Speciality, string>(pageSize, pageIndex,
@@ -48,17 +39,15 @@ namespace Dsw2026Tpi.Application.Services
 
             return specialities.Map(s => new SpecialityModel.Response(s.Id, s.Name, s.Description));
         }
-
-        //metodo para actualizar una especialidad
         public async Task<SpecialityModel.Response> Update(Guid id, SpecialityModel.Request request)
         {
             var speciality = await _persistence.GetById<Speciality>(id);
 
             if (speciality is null)
-                throw new EntityNotFoundException(SpecialityNotFound);
+                throw new EntityNotFoundException(SpecialityId);
 
             if (speciality.Deleted)
-                throw new EntityNotFoundException(SpecialityNotFound);
+                throw new EntityNotFoundException(SpecialityId);
 
             speciality.UpdateDetails(request.Name, request.Description);
             await _persistence.Update<Speciality>(speciality);
@@ -66,4 +55,4 @@ namespace Dsw2026Tpi.Application.Services
             return new SpecialityModel.Response(speciality.Id, speciality.Name, speciality.Description);
         }
     }
-}
+

@@ -52,7 +52,6 @@ public class Program
 
             var app = builder.Build();
 
-            // Inicializa Identity (roles + administrador)
             await app.SeedIdentityAsync();
 
             app.UseMiddleware<ExceptionHandlingMiddleware>();

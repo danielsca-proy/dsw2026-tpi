@@ -25,7 +25,7 @@ public static class IdentitySeedingExtensions
 
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        const string email = "admin@utn.com"; //Añadir seguridad a esto...
+        const string email = "admin@utn.com";
         const string password = "Admin123!";
         const long dni = 99999999;
 

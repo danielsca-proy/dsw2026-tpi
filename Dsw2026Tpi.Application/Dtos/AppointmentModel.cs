@@ -10,7 +10,6 @@ public static class AppointmentModel
     public record AdministrativeSpecialty(Guid SpecialtyId, string Name);
 
     //----------------
-
     public record PatientRequest(long Dni);
     public record CreateRequest(Guid DoctorId, Guid AvailabilitySlotId, PatientRequest Patient, string Reason);
     public record CreateResponse(Guid Id, string Status, DateTime StartTime, DateTime EndTime);

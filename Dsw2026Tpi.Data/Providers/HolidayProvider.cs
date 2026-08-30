@@ -3,10 +3,6 @@ using System.Text.Json;
 using Dsw2026Tpi.Domain.Interfaces;
 
 namespace Dsw2026Tpi.Data.Providers;
-
-
-// Obtiene los feriados y días no laborales desde Sources/holidays.json.
-
 public sealed class HolidayProvider : IHolidayProvider
 {
     private readonly HashSet<DateOnly> _nonWorkingDays;

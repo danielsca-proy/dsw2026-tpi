@@ -48,28 +48,24 @@ public static class RateLimitingConfigurationExtensions
                 await httpContext.Response.WriteAsync(json, cancellationToken);
             };
 
-            //para administradores, el maximo por ip
             options.AddPolicy(RateLimitPolicies.AdminLogin, httpContext =>
                 {
                     var partitionKey = $"admin-login:{GetClientIp(httpContext)}";
                     return CreatePartition(partitionKey,rateLimitOptions.AdminLogin);
                 });
 
-            //para pacientes, el maximo por ip
             options.AddPolicy(RateLimitPolicies.PatientLogin, httpContext =>
                 {
                     var partitionKey = $"patient-login:{GetClientIp(httpContext)}";
                     return CreatePartition(partitionKey, rateLimitOptions.PatientLogin);
                 });
 
-            //maximo para crear turnos
             options.AddPolicy(RateLimitPolicies.AppointmentCreate, httpContext =>
                 {
                     var partitionKey = $"appointment-create:{GetUserOrIp(httpContext)}";
                     return CreatePartition(partitionKey, rateLimitOptions.AppointmentCreate);
                 });
 
-            //politica general
             options.AddPolicy(RateLimitPolicies.General, httpContext =>
                 {
                     var partitionKey = $"general:{GetUserOrIp(httpContext)}";

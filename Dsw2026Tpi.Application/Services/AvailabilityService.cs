@@ -68,7 +68,6 @@ public class AvailabilityService : IAvailabilityService
             }
         }
     }
-
     private static string GetDayName(DayOfWeek dow) => dow switch
     {
         DayOfWeek.Monday => "LUNES",
@@ -80,7 +79,6 @@ public class AvailabilityService : IAvailabilityService
         DayOfWeek.Sunday => "DOMINGO",
         _ => throw new ArgumentOutOfRangeException(nameof(dow))
     };
-
     private async Task GenerateSlotsForRule(AvailabilityRule rule, DateTime fromDate, DateTime toDate)
     {
         var excluded = new HashSet<DateOnly>();
@@ -149,7 +147,6 @@ public class AvailabilityService : IAvailabilityService
             await _persistence.Add(s);
         }
     }
-
     public async Task<List<AvailabilityModel.Response>> Create(AvailabilityModel.Request request)
     {
         var doctorId = Guid.Parse(request.DoctorId);
@@ -178,7 +175,7 @@ public class AvailabilityService : IAvailabilityService
                 if (!existingDays.Contains(day)) continue;
 
                 if (er.StartTime < end && er.EndTime > start)
-                    throw new BusinessRuleException("La regla de disponibilidad solapa con una regla existente.", "AVAILABILITY_OVERLAP");
+                    throw new BusinessRuleException("AVAILABILITY_OVERLAP", "La regla de disponibilidad solapa con una regla existente.");
             }
         }
 
@@ -226,7 +223,6 @@ public class AvailabilityService : IAvailabilityService
             ExcludedDatesCsv = r.ExcludedDatesCsv
         }).ToList();
     }
-
     public async Task<List<AvailabilityModel.Response>> Update(AvailabilityModel.Request request)
     {
         var doctorId = Guid.Parse(request.DoctorId);
