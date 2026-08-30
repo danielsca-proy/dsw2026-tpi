@@ -63,13 +63,4 @@ public class AuthenticationController : AppController
         var result = await _authenticationService.RegisterAdmin(request);
         return Ok(result.Email);
     }
-
-    private static void Invalidez(FluentValidation.Results.ValidationResult validation)
-    {
-        if (validation.IsValid) return;
-        var ex = new ValidationException();
-        foreach (var error in validation.Errors)
-            ex.WithDetail(error.PropertyName, error.ErrorMessage);
-        throw ex;
-    }
 }

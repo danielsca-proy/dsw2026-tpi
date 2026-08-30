@@ -116,16 +116,6 @@ public class AppointmentController : AppController
         await _service.Cancel(id, authenticatedUserName);
         return Ok("ok");
     }
-
-    //Mismo metodo para codigo
-    private static void Invalidez(FluentValidation.Results.ValidationResult validation)
-    {
-        if (validation.IsValid) return;
-        var ex = new ValidationException();
-        foreach (var error in validation.Errors)
-            ex.WithDetail(error.PropertyName, error.ErrorMessage);
-        throw ex;
-    }
     private string GetAuthenticatedUserName()
     {
         var authenticatedUserName = User.Identity?.Name;

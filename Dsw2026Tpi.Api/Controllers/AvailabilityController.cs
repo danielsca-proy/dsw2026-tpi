@@ -50,13 +50,4 @@ public class AvailabilityController : AppController
         return Ok(result);
     }
 
-    //Mismo metodo para codigo
-    private static void Invalidez(FluentValidation.Results.ValidationResult validation)
-    {
-        if (validation.IsValid) return;
-        var ex = new ValidationException();
-        foreach (var error in validation.Errors)
-            ex.WithDetail(error.PropertyName, error.ErrorMessage);
-        throw ex;
-    }
 }

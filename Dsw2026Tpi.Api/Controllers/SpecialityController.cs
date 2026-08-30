@@ -73,14 +73,4 @@ public class SpecialityController : AppController
         await _service.Delete(id);
         return Ok("ok");
     }
-
-    //Esto para evitar repetir el bloqeu de codigo en los endpoints
-    private static void Invalidez(FluentValidation.Results.ValidationResult validation)
-    {
-        if (validation.IsValid) return;
-        var ex = new ValidationException();
-        foreach (var error in validation.Errors)
-            ex.WithDetail(error.PropertyName, error.ErrorMessage);
-        throw ex;
-    }
 }

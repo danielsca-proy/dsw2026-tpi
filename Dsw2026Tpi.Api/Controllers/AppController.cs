@@ -12,5 +12,17 @@ namespace Dsw2026Tpi.Api.Controllers;
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public abstract class AppController : ControllerBase
 {
+    protected static void Invalidez(FluentValidation.Results.ValidationResult validationResult)
+    {
+        if (!validationResult.IsValid)
+        {
+            var exception = new CrossCutting.Exceptions.ValidationException();
+            foreach (var error in validationResult.Errors)
+            {
+                exception.WithDetail(error.PropertyName, error.ErrorMessage);
+            }
+            throw exception;
+        }
+    }
 }
 
