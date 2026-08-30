@@ -59,8 +59,6 @@ public class AuthenticationService : IAuthenticationService
                 UserName = request.Email,
                 Email = request.Email,
                 Dni = request.Dni,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
             };
 
             var createResult = await _userManager.CreateAsync(user);
@@ -96,8 +94,6 @@ public class AuthenticationService : IAuthenticationService
         {
             UserName = request.Email,
             Email = request.Email,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
