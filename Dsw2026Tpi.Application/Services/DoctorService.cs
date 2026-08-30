@@ -16,15 +16,11 @@ public class DoctorService : IDoctorService
     {
         _persistence = persistence;
     }
-
-    //metodo para obtener todos los doctores paginado y filtrado
     public async Task<Pagination<DoctorModel.Response>> GetAll( int pageSize, int pageIndex, string? name = null)
     {
         var doctors = await _persistence.Paginate<Doctor, string>(pageSize, pageIndex, d => !d.Deleted && d.IsActive && (string.IsNullOrWhiteSpace(name) || d.Name.Contains(name)), d => d.Name, nameof(Doctor.Speciality));
         return doctors.Map(MapResponse);
     }
-
-    //metodo para crear un doctor
     public async Task<DoctorModel.Response> Create(DoctorModel.Request request)
     {
         var speciality = await _persistence.GetById<Speciality>(request.SpecialtyId);
@@ -37,8 +33,6 @@ public class DoctorService : IDoctorService
 
         return MapResponse(doctor);
     }
-
-    //metodo para actualizar un doctor
     public async Task<DoctorModel.Response> Update(Guid id, DoctorModel.Request request)
     {
         var doctor = await _persistence.GetById<Doctor>(id);
@@ -56,8 +50,6 @@ public class DoctorService : IDoctorService
 
         return MapResponse(doctor);
     }
-
-    //metodo para obtener la disponibilidad de un doctor por id
     public async Task<IEnumerable<DoctorModel.AvailabilityResponse>>GetAvailabilities(Guid id)
     {
         var doctor = await _persistence.GetById<Doctor>(id);
@@ -83,8 +75,6 @@ public class DoctorService : IDoctorService
             .Select(slot => new DoctorModel.AvailabilityResponse(slot.Id, GetDayName(slot.Start.DayOfWeek), slot.Start.TimeOfDay.ToString(@"hh\:mm"), slot.End.TimeOfDay.ToString(@"hh\:mm")))
             .ToList();
     }
-
-    //metodo para eliminar un doctor (logicamente)
     public async Task Delete(Guid id)
     {
         var doctor = await _persistence.GetById<Doctor>(id);
@@ -94,8 +84,6 @@ public class DoctorService : IDoctorService
         doctor.MarkAsDeleted();
         await _persistence.Update(doctor);
     }
-
-    //metodo para tomar el nombre del dia de la semana
     private static string GetDayName(DayOfWeek day)
     {
         return day switch
@@ -110,24 +98,6 @@ public class DoctorService : IDoctorService
             _ => string.Empty
         };
     }
-
-    //metodo para ordenar los dias de la semana
-    private static int GetDayOrder(string day)
-    {
-        return day switch
-        {
-            "LUNES" => 1,
-            "MARTES" => 2,
-            "MIÉRCOLES" => 3,
-            "JUEVES" => 4,
-            "VIERNES" => 5,
-            "SÁBADO" => 6,
-            "DOMINGO" => 7,
-            _ => 8
-        };
-    }
-
-    //metodo para mapear la respuesta del doctor
     private static DoctorModel.Response MapResponse(Doctor doctor)
     {
         return new DoctorModel.Response(doctor.Id, doctor.Name, doctor.LicenseNumber, new DoctorModel.SpecialtyDto(doctor.SpecialityId, doctor.Speciality?.Name ?? string.Empty));

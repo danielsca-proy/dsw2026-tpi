@@ -23,7 +23,6 @@ public class PersistenceEf: IPersistence
 
     public async Task<T> Delete<T>(T entity) where T : EntityBase
     {
-        var a = entity.Id;
         _context.Remove(entity);
         await _context.SaveChangesAsync();
         return entity;
