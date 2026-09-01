@@ -2,6 +2,7 @@
 using Dsw2026Tpi.CrossCutting.Helpers;
 using FluentValidation;
 
+namespace Dsw2026Tpi.Application.Validators;
 public class LoginPatientValidator : AbstractValidator<LoginPatientModel.Request>
 {
     public LoginPatientValidator()

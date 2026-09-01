@@ -1,4 +1,5 @@
-﻿using Dsw2026Tpi.Application.Dtos;
+﻿using System.Linq.Expressions;
+using Dsw2026Tpi.Application.Dtos;
 using Dsw2026Tpi.Application.Interfaces;
 using Dsw2026Tpi.CrossCutting.Exceptions;
 using Dsw2026Tpi.CrossCutting.Resources;
@@ -23,12 +24,12 @@ public class AppointmentService : IAppointmentService
     public async Task<AppointmentModel.CreateResponse> Create(AppointmentModel.CreateRequest request, string authenticatedUserName)
     {
         var doctor = await _persistence.GetById<Doctor>(request.DoctorId);
-        if (doctor is null || doctor.Deleted )
+        if (doctor is null || doctor.Deleted)
             throw new EntityNotFoundException("Doctor");
 
         if (!doctor.IsActive)
-            throw new BusinessRuleException("No se pueden reservar turnos con un médico inactivo.", "DOCTOR_INACTIVE");
-        
+            throw new BusinessRuleException("DOCTOR_INACTIVE", "No se pueden reservar turnos con un médico inactivo.");
+
 
         var slot = await _persistence.GetById<AvailabilitySlot>(request.AvailabilitySlotId);
         if (slot is null || slot.DoctorId != request.DoctorId)
@@ -107,16 +108,77 @@ public class AppointmentService : IAppointmentService
             a.AvailabilitySlot.End
         ));
     }
-    public async Task<Pagination<AppointmentModel.AdministrativeResponse>>GetByDate(DateOnly date, int pageSize, int pageIndex)
+    public async Task<Pagination<AppointmentModel.AdministrativeResponse>> GetByDate(DateOnly date, int pageSize, int pageIndex)
     {
         var dayStart = date.ToDateTime(TimeOnly.MinValue);
         var dayEnd = date.ToDateTime(TimeOnly.MaxValue);
 
-        var result = await _persistence.Paginate<Appointment, DateTime>(pageSize, pageIndex,appointment =>
-                appointment.AvailabilitySlot!.Start >= dayStart &&
-                appointment.AvailabilitySlot.Start <= dayEnd,
-                appointment =>
-                appointment.AvailabilitySlot!.Start,
+        var (appointments, patientDnis, total, normalizedPageSize, normalizedPageIndex) = await QueryAppointments(
+            appointment => appointment.AvailabilitySlot!.Start >= dayStart && appointment.AvailabilitySlot.Start <= dayEnd,
+            pageSize, pageIndex);
+
+        var data = appointments.Select(appointment =>
+        {
+            var slot = appointment.AvailabilitySlot!;
+            var doctor = slot.Doctor!;
+            var specialty = doctor.Speciality!;
+            var patientDni = patientDnis[appointment.PatientUserId];
+
+            return new AppointmentModel.AdministrativeResponse(appointment.Id, appointment.Status.ToString(),
+                   new AppointmentModel.AdministrativePatient(patientDni, string.Empty), //Fullname vacio...
+                   new AppointmentModel.AdministrativeDoctor(doctor.Id, doctor.Name,
+                   new AppointmentModel.AdministrativeSpecialty(specialty.Id, specialty.Name)));
+        });
+
+        return new Pagination<AppointmentModel.AdministrativeResponse>(normalizedPageSize, normalizedPageIndex, total, data);
+    }
+    public async Task<Pagination<AppointmentModel.SearchAdministrativeResponse>> Search(Guid? specialtyId, Guid? doctorId, long? dni, DateOnly? date, int pageSize, int pageIndex)
+    {
+        string? patientId = null;
+
+        if (dni.HasValue)
+        {
+            patientId = await _userManager.Users
+                .Where(user => user.Dni == dni.Value)
+                .Select(user => user.Id)
+                .FirstOrDefaultAsync();
+
+            if (patientId is null)
+                return new Pagination<AppointmentModel.SearchAdministrativeResponse>(pageSize, pageIndex, 0, []);
+
+        }
+
+        DateTime? dayStart = date.HasValue ? date.Value.ToDateTime(TimeOnly.MinValue) : null;
+        DateTime? dayEnd = date.HasValue ? date.Value.ToDateTime(TimeOnly.MaxValue) : null;
+
+        var (appointments, patientDnis, total, normalizedPageSize, normalizedPageIndex) = await QueryAppointments(
+            appointment =>
+                (!specialtyId.HasValue || appointment.AvailabilitySlot!.Doctor!.SpecialityId == specialtyId.Value) &&
+                (!doctorId.HasValue || appointment.AvailabilitySlot!.DoctorId == doctorId.Value) &&
+                (patientId == null || appointment.PatientUserId == patientId) &&
+                (!dayStart.HasValue || (appointment.AvailabilitySlot!.Start >= dayStart.Value && appointment.AvailabilitySlot.Start <= dayEnd!.Value)),
+            pageSize, pageIndex);
+
+        var data = appointments.Select(appointment =>
+        {
+            var slot = appointment.AvailabilitySlot!;
+            var doctor = slot.Doctor!;
+            var specialty = doctor.Speciality!;
+
+            var patientDni = patientDnis[appointment.PatientUserId];
+
+            return new AppointmentModel.SearchAdministrativeResponse(appointment.Id, appointment.Status.ToString(),
+                new AppointmentModel.AdministrativePatient(patientDni, string.Empty),
+                new AppointmentModel.AdministrativeDoctor(doctor.Id, doctor.Name,
+                new AppointmentModel.AdministrativeSpecialty(specialty.Id, specialty.Name)), slot.Start);
+        });
+
+        return new Pagination<AppointmentModel.SearchAdministrativeResponse>(normalizedPageSize, normalizedPageIndex, total, data);
+    }
+    private async Task<(List<Appointment> Items, Dictionary<string, long> PatientDnis, int Total, int PageSize, int PageIndex)> QueryAppointments(Expression<Func<Appointment, bool>> filter, int pageSize, int pageIndex)
+    {
+        var result = await _persistence.Paginate<Appointment, DateTime>(pageSize, pageIndex, filter,
+                appointment => appointment.AvailabilitySlot!.Start,
                 nameof(Appointment.AvailabilitySlot),
                 $"{nameof(Appointment.AvailabilitySlot)}." +
                 $"{nameof(AvailabilitySlot.Doctor)}",
@@ -135,79 +197,7 @@ public class AppointmentService : IAppointmentService
                 .Where(user => patientIds.Contains(user.Id))
                 .ToDictionaryAsync(user => user.Id, user => user.Dni);
 
-        var data = appointments.Select(appointment =>
-        {
-            var slot = appointment.AvailabilitySlot!;
-            var doctor = slot.Doctor!;
-            var specialty = doctor.Speciality!;
-            var patientDni = patientDnis[appointment.PatientUserId];
-
-            return new AppointmentModel.AdministrativeResponse(appointment.Id, appointment.Status.ToString(),
-                   new AppointmentModel.AdministrativePatient(patientDni, string.Empty), //Fullname vacio...
-                   new AppointmentModel.AdministrativeDoctor(doctor.Id, doctor.Name,
-                   new AppointmentModel.AdministrativeSpecialty(specialty.Id, specialty.Name)));
-        });
-
-        return new Pagination<AppointmentModel.AdministrativeResponse>( result.PageSize, result.PageIndex, result.Total, data);
-    }
-    public async Task<
-    Pagination<AppointmentModel.SearchAdministrativeResponse>>Search(Guid? specialtyId, Guid? doctorId, long? dni, DateOnly? date, int pageSize, int pageIndex)
-    {
-        string? patientId = null;
-
-        if (dni.HasValue)
-        {
-            patientId = await _userManager.Users
-                .Where(user => user.Dni == dni.Value)
-                .Select(user => user.Id)
-                .FirstOrDefaultAsync();
-
-            if (patientId is null)
-                return new Pagination<AppointmentModel.SearchAdministrativeResponse>( pageSize,  pageIndex, 0, []);
-            
-        }
-
-        DateTime? dayStart = date.HasValue ? date.Value.ToDateTime(TimeOnly.MinValue) : null;
-        DateTime? dayEnd = date.HasValue ? date.Value.ToDateTime(TimeOnly.MaxValue) : null;
-
-        var result = await _persistence.Paginate<Appointment, DateTime>(pageSize, pageIndex, appointment =>
-                    (!specialtyId.HasValue || appointment.AvailabilitySlot!.Doctor!.SpecialityId == specialtyId.Value) &&
-                    (!doctorId.HasValue || appointment.AvailabilitySlot!.DoctorId == doctorId.Value) &&
-                    (patientId == null || appointment.PatientUserId == patientId) && (!dayStart.HasValue || (appointment.AvailabilitySlot!.Start >= dayStart.Value && appointment.AvailabilitySlot.Start <= dayEnd!.Value)),
-                    appointment => appointment.AvailabilitySlot!.Start,
-                    nameof(Appointment.AvailabilitySlot),
-                    $"{nameof(Appointment.AvailabilitySlot)}." +
-                    $"{nameof(AvailabilitySlot.Doctor)}",
-                    $"{nameof(Appointment.AvailabilitySlot)}." +
-                    $"{nameof(AvailabilitySlot.Doctor)}." +
-                    $"{nameof(Doctor.Speciality)}");
-
-        var appointments = result.Data.ToList();
-
-        var patientIds = appointments
-            .Select(appointment => appointment.PatientUserId)
-            .Distinct()
-            .ToArray();
-
-        var patientDnis = patientIds.Length == 0 ? new Dictionary<string, long>() : await _userManager.Users
-                .Where(user => patientIds.Contains(user.Id))
-                .ToDictionaryAsync(user => user.Id, user => user.Dni);
-
-        var data = appointments.Select(appointment =>
-        {
-            var slot = appointment.AvailabilitySlot!;
-            var doctor = slot.Doctor!;
-            var specialty = doctor.Speciality!;
-
-            var patientDni = patientDnis[appointment.PatientUserId];
-
-            return new AppointmentModel.SearchAdministrativeResponse(appointment.Id, appointment.Status.ToString(),
-                new AppointmentModel.AdministrativePatient(patientDni, string.Empty),
-                new AppointmentModel.AdministrativeDoctor(doctor.Id, doctor.Name,
-                new AppointmentModel.AdministrativeSpecialty(specialty.Id, specialty.Name)), slot.Start);
-        });
-
-        return new Pagination<AppointmentModel.SearchAdministrativeResponse>(result.PageSize, result.PageIndex, result.Total, data);
+        return (appointments, patientDnis, result.Total, result.PageSize, result.PageIndex);
     }
     private async Task<ApplicationUser> GetAuthenticatedPatient(string authenticatedUserName, long requestedDni)
     {

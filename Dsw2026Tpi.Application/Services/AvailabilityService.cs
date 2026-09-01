@@ -27,7 +27,6 @@ public class AvailabilityService : IAvailabilityService
         "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"
     };
 
-    //metodo para normalizar el nombre del dia
     private static string NormalizeDayName(string day)
     {
         if (string.IsNullOrWhiteSpace(day))
@@ -42,7 +41,6 @@ public class AvailabilityService : IAvailabilityService
 
         return normalized;
     }
-
     private static void ValidateNoOverlapsWithinRequest(IReadOnlyCollection<(string Day, TimeSpan Start, TimeSpan End)> schedules)
     {
         var schedulesByDay = schedules.GroupBy(schedule => schedule.Day);
@@ -70,8 +68,6 @@ public class AvailabilityService : IAvailabilityService
             }
         }
     }
-
-    //metodo para obtener el nombre del dia
     private static string GetDayName(DayOfWeek dow) => dow switch
     {
         DayOfWeek.Monday => "LUNES",
@@ -83,8 +79,6 @@ public class AvailabilityService : IAvailabilityService
         DayOfWeek.Sunday => "DOMINGO",
         _ => throw new ArgumentOutOfRangeException(nameof(dow))
     };
-
-    //metodo para generar los slots de disponibilidad a partir de una regla
     private async Task GenerateSlotsForRule(AvailabilityRule rule, DateTime fromDate, DateTime toDate)
     {
         var excluded = new HashSet<DateOnly>();
@@ -153,8 +147,6 @@ public class AvailabilityService : IAvailabilityService
             await _persistence.Add(s);
         }
     }
-
-    //metodo para crear intervalos de disponibilidad para un doctorr
     public async Task<List<AvailabilityModel.Response>> Create(AvailabilityModel.Request request)
     {
         var doctorId = Guid.Parse(request.DoctorId);
@@ -166,23 +158,7 @@ public class AvailabilityService : IAvailabilityService
         if (request.Days == null || !request.Days.Any())
             throw new ValidationException().WithDetail("days", "se requiere al menos un dia con horario");
 
-        var parsed = new List<(string Day, TimeSpan Start, TimeSpan End)>();
-
-        foreach (var day in request.Days)
-        {
-            var dayName = NormalizeDayName(day.Day);
-
-            if (!TimeSpan.TryParseExact(day.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
-                throw new ValidationException().WithDetail($"days[{day.Day}].startTime", "formato inválido, se requiere HH:mm");
-
-            if (!TimeSpan.TryParseExact(day.EndTime, @"hh\:mm", CultureInfo.InvariantCulture, out var end))
-                throw new ValidationException().WithDetail($"days[{day.Day}].endTime", "formato inválido, se requiere HH:mm");
-
-            if (start >= end)
-                throw new ValidationException().WithDetail($"days[{day.Day}]", "La hora de inicio debe ser antes de la hora de finalización");
-
-            parsed.Add((dayName, start, end));
-        }
+        var parsed = ParseAndValidateDays(request.Days);
 
         ValidateNoOverlapsWithinRequest(parsed);
 
@@ -199,7 +175,7 @@ public class AvailabilityService : IAvailabilityService
                 if (!existingDays.Contains(day)) continue;
 
                 if (er.StartTime < end && er.EndTime > start)
-                    throw new BusinessRuleException("La regla de disponibilidad solapa con una regla existente.", "AVAILABILITY_OVERLAP");
+                    throw new BusinessRuleException("AVAILABILITY_OVERLAP", "La regla de disponibilidad solapa con una regla existente.");
             }
         }
 
@@ -247,8 +223,6 @@ public class AvailabilityService : IAvailabilityService
             ExcludedDatesCsv = r.ExcludedDatesCsv
         }).ToList();
     }
-
-    //metodo para actualizar intervalos de disponibilidad para un doctor
     public async Task<List<AvailabilityModel.Response>> Update(AvailabilityModel.Request request)
     {
         var doctorId = Guid.Parse(request.DoctorId);
@@ -260,23 +234,7 @@ public class AvailabilityService : IAvailabilityService
         if (request.Days == null || !request.Days.Any())
             throw new ValidationException().WithDetail("days", "se requiere al menos un dia con horario");
 
-        var parsed = new List<(string Day, TimeSpan Start, TimeSpan End)>();
-
-        foreach (var day in request.Days)
-        {
-            var dayName = NormalizeDayName(day.Day);
-
-            if (!TimeSpan.TryParseExact(day.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
-                throw new ValidationException().WithDetail($"days[{day.Day}].startTime", "formato inválido, se requiere HH:mm");
-
-            if (!TimeSpan.TryParseExact(day.EndTime, @"hh\:mm", CultureInfo.InvariantCulture, out var end))
-                throw new ValidationException().WithDetail($"days[{day.Day}].endTime", "formato inválido, se requiere HH:mm");
-
-            if (start >= end)
-                throw new ValidationException().WithDetail($"days[{day.Day}]", "La hora de inicio debe ser antes de la hora de finalización");
-
-            parsed.Add((dayName, start, end));
-        }
+        var parsed = ParseAndValidateDays(request.Days);
 
         ValidateNoOverlapsWithinRequest(parsed);
 
@@ -443,5 +401,27 @@ public class AvailabilityService : IAvailabilityService
             IsActive = rule.IsActive,
             ExcludedDatesCsv = rule.ExcludedDatesCsv
         }).ToList();
+    }
+    private static List<(string Day, TimeSpan Start, TimeSpan End)> ParseAndValidateDays(IEnumerable<AvailabilityModel.DayRequest> days)
+    {
+        var parsed = new List<(string Day, TimeSpan Start, TimeSpan End)>();
+
+        foreach (var day in days)
+        {
+            var dayName = NormalizeDayName(day.Day);
+
+            if (!TimeSpan.TryParseExact(day.StartTime, @"hh\:mm", CultureInfo.InvariantCulture, out var start))
+                throw new ValidationException().WithDetail($"days[{day.Day}].startTime", "formato inválido, se requiere HH:mm");
+
+            if (!TimeSpan.TryParseExact(day.EndTime, @"hh\:mm", CultureInfo.InvariantCulture, out var end))
+                throw new ValidationException().WithDetail($"days[{day.Day}].endTime", "formato inválido, se requiere HH:mm");
+
+            if (start >= end)
+                throw new ValidationException().WithDetail($"days[{day.Day}]", "La hora de inicio debe ser antes de la hora de finalización");
+
+            parsed.Add((dayName, start, end));
+        }
+
+        return parsed;
     }
 }

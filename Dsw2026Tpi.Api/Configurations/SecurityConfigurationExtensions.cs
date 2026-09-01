@@ -15,11 +15,17 @@ public static class SecurityConfigurationExtensions
 {
     public static IServiceCollection AddAppAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var jwtConfig = configuration.GetSection("Jwt");
-        var keyText = jwtConfig["Key"] ?? throw new ArgumentNullException("JWT Key");
-        var issuer = jwtConfig["Issuer"] ?? throw new ArgumentNullException("JWT Issuer");
-        var audience = jwtConfig["Audience"] ?? throw new ArgumentNullException("JWT Audience");
-        var key = Encoding.UTF8.GetBytes(keyText);
+        var jwtOptions = configuration
+            .GetSection(JwtOptions.SectionName)
+            .Get<JwtOptions>() ?? throw new InvalidOperationException($"No se encontró la sección de configuración '{JwtOptions.SectionName}'.");
+
+        if (string.IsNullOrWhiteSpace(jwtOptions.Key)) throw new ArgumentNullException("JWT Key");
+        if (string.IsNullOrWhiteSpace(jwtOptions.Issuer)) throw new ArgumentNullException("JWT Issuer");
+        if (string.IsNullOrWhiteSpace(jwtOptions.Audience)) throw new ArgumentNullException("JWT Audience");
+
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+
+        var key = Encoding.UTF8.GetBytes(jwtOptions.Key);
 
         services.AddAuthentication(options =>
         {
@@ -35,12 +41,11 @@ public static class SecurityConfigurationExtensions
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = issuer,
-                    ValidAudience = audience,
+                    ValidIssuer = jwtOptions.Issuer,
+                    ValidAudience = jwtOptions.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(key)
                 };
 
-                //Formatear 401/403 con el mismo formato de error de toda la app
                 options.Events = new JwtBearerEvents
                 {
                     OnChallenge = async context =>

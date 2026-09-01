@@ -51,7 +51,7 @@ public class AuthenticationController : AppController
         return Ok(result);
     }
 
-    //Este metodo sera eliminado a futuro.
+    //Este metodo debe ser eliminado a futuro, o añadirle autorizacion para que solo otros admin puedan registrar a uno nuevo.
     [HttpPost("admin/register")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -62,14 +62,5 @@ public class AuthenticationController : AppController
 
         var result = await _authenticationService.RegisterAdmin(request);
         return Ok(result.Email);
-    }
-
-    private static void Invalidez(FluentValidation.Results.ValidationResult validation)
-    {
-        if (validation.IsValid) return;
-        var ex = new ValidationException();
-        foreach (var error in validation.Errors)
-            ex.WithDetail(error.PropertyName, error.ErrorMessage);
-        throw ex;
     }
 }

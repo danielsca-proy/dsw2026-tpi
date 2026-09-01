@@ -26,7 +26,6 @@ public class AppointmentController : AppController
         _searchValidator = searchValidator;
     }
 
-    //Metodo para consultar citas por fecha
     [HttpGet]
     [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.AdminPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -48,7 +47,6 @@ public class AppointmentController : AppController
         return Ok(appointments);
     }
 
-    //Metodo para buscar citas filtrado
     [HttpGet("search")]
     [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.AdminPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -71,7 +69,6 @@ public class AppointmentController : AppController
         return Ok(result);
     }
 
-    //Metodo para buscar citas por paciente
     [HttpGet("patient")]
     [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
     [ProducesResponseType(typeof(IEnumerable<AppointmentModel.PatientResponse>), StatusCodes.Status200OK)]
@@ -83,7 +80,6 @@ public class AppointmentController : AppController
         return Ok(appointments);
     }
 
-    //Metodo para crear una citaa
     [HttpPost]
     [EnableRateLimiting(RateLimitPolicies.AppointmentCreate)]
     [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
@@ -103,7 +99,6 @@ public class AppointmentController : AppController
         return Created($"/api/appointments/{appointment.Id}", appointment);
     }
 
-    //Metodo para cancelar una cita
     [HttpDelete("{id}")]
     [Authorize(Policy = Dsw2026Tpi.CrossCutting.Identity.Policies.PatientPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -115,16 +110,6 @@ public class AppointmentController : AppController
 
         await _service.Cancel(id, authenticatedUserName);
         return Ok("ok");
-    }
-
-    //Mismo metodo para codigo
-    private static void Invalidez(FluentValidation.Results.ValidationResult validation)
-    {
-        if (validation.IsValid) return;
-        var ex = new ValidationException();
-        foreach (var error in validation.Errors)
-            ex.WithDetail(error.PropertyName, error.ErrorMessage);
-        throw ex;
     }
     private string GetAuthenticatedUserName()
     {

@@ -12,7 +12,7 @@ namespace Dsw2026Tpi.Api.Configurations;
 
 public static class DependencyInjectionConfigurationExtensions
 {
-    //Inyeccion de las dependencias para el codigo, no olvidar de ponerlos
+    //Inyeccion de las dependencias para el codigo, importante registrarlos.
     public static IServiceCollection AddAppDependencies(this IServiceCollection services)
     {
         services.AddScoped<IPersistence, PersistenceEf>();
@@ -27,7 +27,7 @@ public static class DependencyInjectionConfigurationExtensions
         services.AddScoped<IAppointmentService, AppointmentService>();
         services.AddSingleton<JwtService>();
 
-        //Fluent validation para ahorrar code
+        //Fluent validation
         services.AddScoped<IValidator<SpecialityModel.Request>, SpecialityRequestValidator>();
         services.AddScoped<IValidator<AvailabilityModel.Request>, AvailabilityRequestValidator>();
         services.AddScoped<IValidator<AppointmentModel.CreateRequest>, AppointmentCreateRequestValidator>();
@@ -36,11 +36,11 @@ public static class DependencyInjectionConfigurationExtensions
         services.AddScoped<IValidator<SpecialityModel.GetAllQuery>, SpecialityGetAllValidator>();
         services.AddScoped<IValidator<DoctorModel.Request>, DoctorRequestValidator>();
         services.AddScoped<IValidator<DoctorModel.GetAllQuery>, DoctorGetAllQueryValidator>();
-        services.AddScoped<IValidator<RegisterAdminModel.Request>, RegisterValidator>();//Eliminado a futuro
 
-        //Fluent validation pero para register y login
+        //Fluent validation register y login
         services.AddScoped<IValidator<LoginAdminModel.Request>, LoginAdminValidator>();
         services.AddScoped<IValidator<LoginPatientModel.Request>, LoginPatientValidator>();
+        services.AddScoped<IValidator<RegisterAdminModel.Request>, RegisterValidator>();//Eliminar a futuro
 
         return services;
     }

@@ -11,7 +11,6 @@ public static class AvailabilityModel
 {
     public class DayRequest
     {
-        // 0 = Domingo .. 6 = Sabado
         [Required]
         [JsonPropertyName("day")]
         [DefaultValue("string")]

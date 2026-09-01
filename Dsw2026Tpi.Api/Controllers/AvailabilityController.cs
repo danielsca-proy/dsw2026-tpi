@@ -20,7 +20,6 @@ public class AvailabilityController : AppController
         _requestValidator = requestValidation;
     }
 
-    //Metodo para crear una disponibilidad
     [HttpPost]
     [ProducesResponseType(typeof(List<AvailabilityModel.Response>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -35,7 +34,6 @@ public class AvailabilityController : AppController
         return Created($"/api/availabilities/{result.First().Id}", result);
     }
 
-    //Metodo para actualizar una disponibilidad
     [HttpPut]
     [ProducesResponseType(typeof(List<AvailabilityModel.Response>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -50,13 +48,4 @@ public class AvailabilityController : AppController
         return Ok(result);
     }
 
-    //Mismo metodo para codigo
-    private static void Invalidez(FluentValidation.Results.ValidationResult validation)
-    {
-        if (validation.IsValid) return;
-        var ex = new ValidationException();
-        foreach (var error in validation.Errors)
-            ex.WithDetail(error.PropertyName, error.ErrorMessage);
-        throw ex;
-    }
 }

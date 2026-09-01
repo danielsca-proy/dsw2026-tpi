@@ -8,9 +8,21 @@ namespace Dsw2026Tpi.Api.Controllers;
 /// Clase base para configuraciones generales de controladores
 /// </summary>
 [ApiController]
-[EnableRateLimiting(RateLimitPolicies.General)] //Para evitar tener que hacerlo en todos los controladores, lo hacemos aqui
+[EnableRateLimiting(RateLimitPolicies.General)]
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public abstract class AppController : ControllerBase
 {
+    protected static void Invalidez(FluentValidation.Results.ValidationResult validationResult)
+    {
+        if (!validationResult.IsValid)
+        {
+            var exception = new CrossCutting.Exceptions.ValidationException();
+            foreach (var error in validationResult.Errors)
+            {
+                exception.WithDetail(error.PropertyName, error.ErrorMessage);
+            }
+            throw exception;
+        }
+    }
 }
 
